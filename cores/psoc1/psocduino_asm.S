@@ -104,5 +104,7 @@ _psocduino_mask:
     and   A, 07h
     index psd_bits
     ret
+    .LITERAL                          ; tabla en ROM (compatible con Code Compressor)
 psd_bits:
     db    01h, 02h, 04h, 08h, 10h, 20h, 40h, 80h
+    .ENDLITERAL

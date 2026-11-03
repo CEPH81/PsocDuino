@@ -856,6 +856,25 @@ static int cmd_link(int argc, char **argv)
         snprintf(p2, sizeof p2, "%s/%s", bdir, copies[i]);
         if (copy_file(p1, p2)) die("falta %s en la variante", p1);
     }
+    /* LMM: el enlazador pone 'xidata' (valores iniciales de las variables)
+     * despues de la ultima area de ROM, que con PsocDuino no es 'text':
+     * __text_end no sirve. El puntero debe ir a __xidata_start (lo pide el
+     * aviso "__xidata_start label not found in startup file"). */
+    {
+        long bl;
+        snprintf(p2, sizeof p2, "%s/boot.asm", bdir);
+        char *bt = read_file(p2, &bl);
+        char *w = bt ? strstr(bt, "word __text_end") : NULL;
+        if (w) {
+            size_t cap = (size_t)bl + 64;
+            char *nb = malloc(cap);
+            if (!nb) die("memoria");
+            snprintf(nb, cap, "%.*sword __xidata_start%s", (int)(w - bt), bt, w + strlen("word __text_end"));
+            write_file(p2, nb, (long)strlen(nb));
+            free(nb);
+        }
+        free(bt);
+    }
     snprintf(p1, sizeof p1, "%s/lib/GlobalParams.inc", variant_dir);
     long gl;
     char *gp = read_file(p1, &gl);
