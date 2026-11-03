@@ -3,3 +3,4 @@ tools/psocprog/psocprog.exe
 *.o
 tools/psocbuild/psocbuild
 tools/psocbuild/psocbuild.exe
+__pycache__/
