@@ -65,6 +65,7 @@ Ejemplos: **Archivo → Ejemplos → PsocDuino → Blink / Boton / CalibrarDelay
 | `no encuentro PSoC Designer` | Defina la variable de entorno `PSOC_DESIGNER_DIR` con la ruta de `...\PSoC Designer\5.4\Common\CypressSemiBuildMgr` y reinicie el IDE |
 | `CH341A not present` | Programador desconectado o driver no instalado (paso 3) |
 | `el PSoC no responde` | Revise S1 y el menú de entrada (POR/XRES), cableado y alimentación |
+| `cannot load source file "Designer\5.4\...\icppw.exe"` | Windows sin nombres cortos: psocbuild crea solo `%LOCALAPPDATA%\PsocDuino\psd` (enlace sin espacios a PSoC Designer). Si no puede: `mklink /J %LOCALAPPDATA%\PsocDuino\psd "C:\Program Files (x86)\Cypress\PSoC Designer\5.4\Common\CypressSemiBuildMgr"` |
 | Windows bloquea `psocprog.exe` | Son programas sin firma digital: *Más información → Ejecutar de todas formas* |
 
 Para ver las órdenes completas active en **Preferencias** *Mostrar salida detallada*

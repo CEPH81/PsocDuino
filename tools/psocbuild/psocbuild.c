@@ -317,11 +317,48 @@ static const char *psocdir(void)
         char t[MAXP];
         if (!*cands[i]) continue;
         snprintf(t, sizeof t, "%s/tools/include", cands[i]);
-        if (is_dir(t)) { snprintf(d, sizeof d, "%s", cands[i]); slashes(d); return d; }
+        if (is_dir(t)) { snprintf(d, sizeof d, "%s", cands[i]); slashes(d); break; }
     }
-    die("no encuentro PSoC Designer (CypressSemiBuildMgr). Defina PSOC_DESIGNER_DIR,\n"
-        "  por ejemplo: C:\\Program Files (x86)\\Cypress\\PSoC Designer\\5.4\\Common\\CypressSemiBuildMgr");
-    return NULL;
+    if (!*d)
+        die("no encuentro PSoC Designer (CypressSemiBuildMgr). Defina PSOC_DESIGNER_DIR,\n"
+            "  por ejemplo: C:\\Program Files (x86)\\Cypress\\PSoC Designer\\5.4\\Common\\CypressSemiBuildMgr");
+#ifdef _WIN32
+    {
+        /* iccm8c llama a icppw.exe/iccomm8c.exe desde su propia carpeta SIN comillas:
+         * si la ruta tiene espacios (Windows sin nombres cortos 8.3) se rompe.
+         * Solucion: un junction sin espacios hacia CypressSemiBuildMgr. */
+        char sp[MAXP];
+        shortp(d, sp);
+        if (strchr(sp, ' ')) {
+            char link[MAXP], chk[MAXP], parent[MAXP];
+            const char *la = getenv("LOCALAPPDATA");
+            if (la && !strchr(la, ' ')) snprintf(link, sizeof link, "%s/PsocDuino/psd", la);
+            else snprintf(link, sizeof link, "C:/PsocDuino/psd");
+            slashes(link);
+            snprintf(chk, sizeof chk, "%s/tools/include", link);
+            if (!is_dir(chk)) {
+                char lb[MAXP], db[MAXP], c[3 * MAXP];
+                snprintf(parent, sizeof parent, "%s", link);
+                *strrchr(parent, '/') = 0;
+                mkdirs(parent);
+                snprintf(lb, sizeof lb, "%s", link);
+                snprintf(db, sizeof db, "%s", d);
+                for (char *q = lb; *q; q++) if (*q == '/') *q = '\\';
+                for (char *q = db; *q; q++) if (*q == '/') *q = '\\';
+                RemoveDirectoryA(lb); /* junction viejo o roto */
+                snprintf(c, sizeof c, "mklink /J \"%s\" \"%s\" >nul 2>&1", lb, db);
+                run(c, NULL);
+            }
+            if (is_dir(chk)) {
+                if (verbose) fprintf(stderr, "psocbuild: PSoC Designer via %s (ruta sin espacios)\n", link);
+                snprintf(d, sizeof d, "%s", link);
+            } else
+                fprintf(stderr, "psocbuild: aviso: la ruta de PSoC Designer tiene espacios y no pude crear\n"
+                                "  %s. Cree el acceso a mano:  mklink /J %s \"%s\"\n", link, link, d);
+        }
+    }
+#endif
+    return d;
 }
 
 /* ejecutable de ImageCraft */
