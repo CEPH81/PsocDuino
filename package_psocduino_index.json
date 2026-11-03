@@ -277,6 +277,43 @@
             }
           ],
           "toolsDependencies": []
+        },
+        {
+          "name": "PsocDuino (Cypress PSoC 1)",
+          "architecture": "m8c",
+          "version": "0.4.0",
+          "category": "Contributed",
+          "help": {
+            "online": "https://github.com/CEPH81/PsocDuino"
+          },
+          "url": "https://github.com/CEPH81/PsocDuino/releases/download/v0.4.0/psocduino-m8c-0.4.0.tar.bz2",
+          "archiveFileName": "psocduino-m8c-0.4.0.tar.bz2",
+          "checksum": "SHA-256:dda79d6b1e4a03ab89a6ababda0420bffe130b3191db695c59331eb56f444264",
+          "size": "457413",
+          "boards": [
+            {
+              "name": "PSoC 1 CY8C24423A"
+            },
+            {
+              "name": "PSoC 1 CY8C24223A"
+            },
+            {
+              "name": "PSoC 1 CY8C27443"
+            },
+            {
+              "name": "PSoC 1 CY8C27243"
+            },
+            {
+              "name": "PSoC 1 CY8C29466"
+            },
+            {
+              "name": "PSoC 1 CY8C21534"
+            },
+            {
+              "name": "PSoC 1 CY8C21234"
+            }
+          ],
+          "toolsDependencies": []
         }
       ],
       "tools": []
