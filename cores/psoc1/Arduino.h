@@ -140,7 +140,12 @@ long randomRange(long howsmall, long howbig);
 void setup(void);
 void loop(void);
 
-/* interno */
+/* interno (psocduino_asm.S, convencion fastcall16 de ImageCraft) */
 void psocduino_init(void);
-void psocduino_spin9(uint8_t n); /* espera exacta de 9*n ciclos de CPU */
+#ifndef PSOCDUINO_HOST_TEST
+#pragma fastcall16 psocduino_spin9
+#pragma fastcall16 psocduino_measure_tick
+#endif
+void psocduino_spin9(uint8_t n);            /* espera exacta de 9*n ciclos de CPU */
+unsigned int psocduino_measure_tick(void);  /* iteraciones de 23 ciclos por tic */
 #endif

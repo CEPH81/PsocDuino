@@ -25,24 +25,31 @@ programa original (clic derecho en `CH341WDM.INF` → Instalar), o el paquete
 
 ## 4. Requisito para compilar: PSoC Designer 5.4
 
-PsocDuino usa el compilador ImageCraft que instala PSoC Designer. Por cada
-chip, una sola vez, importe su variante (ver [compilacion.md](compilacion.md)):
+PsocDuino usa el compilador ImageCraft que instala PSoC Designer, pero **ya incluye
+la configuración de estos chips** (no hay que importar nada):
 
-1. Cree en PSoC Designer un proyecto vacío en C para el chip y compílelo (F6).
-2. Abra la carpeta de la plataforma instalada (paso 2) y **arrastre la carpeta
-   del proyecto** (la que contiene `project.mk`) sobre **`importar_variante.bat`**;
-   escriba el chip (`cy8c24423a`, `cy8c27443` o `cy8c29466`).
+| Placa | Variante incluida |
+|---|---|
+| CY8C21234 (16 pines), CY8C21534 (28 pines) | sí (modelo de memoria grande) |
+| CY8C24423A | sí |
+| CY8C27243 (20 pines), CY8C27443 (28 pines) | sí |
+| CY8C29466 | pendiente: genere el proyecto e impórtelo (abajo) |
 
-La variante se guarda en `%LOCALAPPDATA%\PsocDuino\variants\<chip>`, fuera de la
-plataforma, así que **no se pierde al actualizar** PsocDuino.
+Para otro chip: cree en PSoC Designer un proyecto vacío en C, pulse **Generate**
+(o Build) y arrastre la carpeta del proyecto sobre **`importar_variante.bat`**
+(en la carpeta de la plataforma instalada). Se guarda en
+`%LOCALAPPDATA%\PsocDuino\variants\<chip>` y no se pierde al actualizar.
 
 ## 5. Compilar y subir
 
 1. **Herramientas → Placa → PsocDuino** → su chip.
 2. Menús en **Herramientas**:
+   - *Alimentación del chip*: **5 V** o **3,3 V** (calibración del oscilador, LVD y
+     vector de programación correctos para esa tensión);
+   - *Reloj de CPU*: 24 / 12 / 6 / 3 / 1,5 MHz (a 3,3 V la hoja de datos admite
+     hasta 12 MHz; 24 MHz compila con aviso);
    - *Entrada a programación*: **Encendido / POR** (circuito con Q1 y S1 en POR)
      o **XRES**;
-   - *Tensión de programación*: 5 V (también en modo POR) o 3,3 V;
    - *Seguridad de flash*: sin protección / según el `.hex` / proteger todo;
    - *Verificación*: completa o rápida.
 3. **Herramientas → Programador → CH341A (psocprog, ISSP)**.

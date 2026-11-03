@@ -39,6 +39,21 @@ vector del Sleep Timer (`64h`) a `_psocduino_sleep_isr`. Al final ejecuta
 Si PSoC Designer está en otra carpeta, defina la variable de entorno
 `PSOC_DESIGNER_DIR` con la ruta de `...\PSoC Designer\5.4\Common\CypressSemiBuildMgr`.
 
+### Variantes incluidas y menús
+
+PsocDuino trae las variantes de CY8C21234, CY8C21534, CY8C24423A y CY8C27x43
+(importadas de los proyectos de Carlos). `psocbuild import` también acepta
+proyectos **solo generados** (sin compilar): toma `opts.txt` y `PSoCConfig.xml`,
+reconstruye `memory.inc` y en cada compilación:
+
+- reescribe `GlobalParams.inc` según los menús **Alimentación** (5 V / 3,3 V:
+  `POWER_SETTING` o `SUPPLY_VOLTAGE`, y LVD) y **Reloj de CPU** (`CPU_CLOCK`);
+  `boot.asm` aplica la calibración del IMO y del bandgap para esa tensión;
+- ensambla `boot.asm` y `lib\*.asm` (configuración global, en lugar de `libpsoc.a`);
+- busca en PSoC Designer la carpeta de `m8c.inc`, la `cms.a` de la familia y la
+  `arith.a` del modelo de memoria (SMM/LMM, con o sin MAC). `psocbuild doctor -V <chip>`
+  muestra qué encontró.
+
 ## 2. Compilar y subir
 
 En el Arduino IDE elija la placa *PSoC 1 CY8C…*, los menús (entrada POR/XRES,
@@ -71,4 +86,5 @@ Probado con arduino-cli y herramientas simuladas: preprocesado, compilación del
 sketch y del núcleo (validados como C89), biblioteca, `boot.asm`, enlace y tamaño.
 Falta confirmarlo con el ImageCraft real:
 - que `iccm8c` acepte `-c -e -o` y las `-D`/`-I` tal como se pasan (ver `psocbuild -v`);
-- la opción del modelo de memoria grande (`-Wf-LMM`) si el proyecto del CY8C29466 usa LMM.
+- los nombres de las carpetas de bibliotecas de PSoC Designer (se buscan solas;
+  si `doctor` no las encuentra, envíe `dir /x` de `tools\include` y `tools\lib`).

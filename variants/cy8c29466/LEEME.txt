@@ -1,4 +1,3 @@
-Variante cy8c29466: vacia hasta importarla.
-Ejecute desde la carpeta del nucleo:
-  importar_variante.bat "C:\ruta\al\proyecto\de\PSoC Designer" cy8c29466
-Ver docs/compilacion.md
+Variante cy8c29466: falta generarla.
+En PSoC Designer abra base_cy8c29466, pulse Generate/Build (F6) y envie el proyecto
+o arrastrelo sobre importar_variante.bat (chip: cy8c29466).

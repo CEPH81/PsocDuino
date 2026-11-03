@@ -96,5 +96,6 @@ jobs:
           git add tools/bin
           if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
           git commit -m "Binarios de psocprog/psocbuild compilados por CI [skip ci]"
+          git pull --rebase origin main
           git push
 

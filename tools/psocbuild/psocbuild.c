@@ -35,12 +35,14 @@
 #define mkdir_p(p) _mkdir(p)
 #define EXE ".exe"
 #else
+#include <dirent.h>
 #include <unistd.h>
 #define mkdir_p(p) mkdir(p, 0755)
 #define EXE ""
 #endif
 
 #define MAXP 4096
+#include "memory_tpl.h"
 #define MAXCMD 65536
 
 static int verbose = 0;
@@ -355,6 +357,9 @@ static void expand(const char *in, char *out, size_t outsz)
     out[o < outsz ? o : outsz - 1] = 0;
 }
 
+static int find_files(const char *root, const char *file, int depth, char out[][MAXP], int max, int n);
+static int score_dir(const char *path, const char *want);
+
 static void std_includes(char *cmd)
 {
     char p[MAXP], s[MAXP];
@@ -362,6 +367,25 @@ static void std_includes(char *cmd)
     shortp(p, s);
     size_t n = strlen(cmd);
     snprintf(cmd + n, MAXCMD - n, " -I%s", s);
+    static char autoinc[MAXP];
+    if (!*cfg("INCLUDE_SUB") && !*autoinc) { /* carpeta de m8c.inc de la familia */
+        char root[MAXP], found[32][MAXP];
+        snprintf(root, sizeof root, "%s/tools/include", psocdir());
+        int n = find_files(root, "m8c.inc", 1, found, 32, 0), best = -1, bs = -1;
+        for (int i = 0; i < n; i++) {
+            int sc = score_dir(found[i], cfg("BASEDEVICE"));
+            if (sc > bs) { bs = sc; best = i; }
+        }
+        if (best >= 0 && bs >= 6) {
+            snprintf(autoinc, sizeof autoinc, "%s", found[best]);
+            *strrchr(autoinc, '/') = 0;
+        } else fprintf(stderr, "psocbuild: aviso: no encuentro m8c.inc para %s en %s\n", cfg("BASEDEVICE"), root);
+    }
+    if (*autoinc) {
+        shortp(autoinc, s);
+        size_t n2 = strlen(cmd);
+        snprintf(cmd + n2, MAXCMD - n2, " -I%s", s);
+    }
     if (*cfg("INCLUDE_SUB")) {
         snprintf(p, sizeof p, "%s/%s", psocdir(), cfg("INCLUDE_SUB"));
         shortp(p, s);
@@ -451,8 +475,16 @@ static int cmd_compile(int argc, char **argv, int is_asm)
         size_t n = strlen(cmd);
         char extra[MAXP];
         expand(cfg("CFLAGS"), extra, sizeof extra);
-        snprintf(cmd + n, MAXCMD - n, " -c -e %s -DF_CPU=%sUL -D__PSOCDUINO__", extra,
-                 *cfg("F_CPU") ? cfg("F_CPU") : "24000000");
+        int has_fcpu = 0, has_ports = 0;
+        for (int i = 0; i < nf; i++) {
+            if (!strncmp(flags[i], "-DF_CPU=", 8)) has_fcpu = 1;
+            if (!strncmp(flags[i], "-DPSOC_NUM_PORTS=", 17)) has_ports = 1;
+        }
+        n += (size_t)snprintf(cmd + n, MAXCMD - n, " -c -e %s -D__PSOCDUINO__", extra);
+        if (!has_fcpu)
+            n += (size_t)snprintf(cmd + n, MAXCMD - n, " -DF_CPU=%sUL", *cfg("F_CPU") ? cfg("F_CPU") : "24000000");
+        if (!has_ports && *cfg("NUM_PORTS"))
+            n += (size_t)snprintf(cmd + n, MAXCMD - n, " -DPSOC_NUM_PORTS=%s", cfg("NUM_PORTS"));
     }
     std_includes(cmd);
     for (int i = 0; i < nf; i++) add_flag(cmd, flags[i]);
@@ -494,15 +526,158 @@ static int cmd_ar(int argc, char **argv)
     return run(cmd, NULL) ? 1 : 0;
 }
 
+
+static void replace_all(char *s, size_t cap, const char *from, const char *to);
+
+/* ------------------------------------------------- directorios y busqueda */
+#define MAXFILES 256
+/* nombres de archivos (no carpetas) de dir; devuelve cantidad */
+static int list_dir(const char *dir, char names[][260], int max, int want_dirs)
+{
+    int n = 0;
+#ifdef _WIN32
+    char pat[MAXP];
+    WIN32_FIND_DATAA fd;
+    snprintf(pat, sizeof pat, "%s/*", dir);
+    HANDLE h = FindFirstFileA(pat, &fd);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    do {
+        int isd = (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+        if (fd.cFileName[0] == '.' || isd != want_dirs || n >= max) continue;
+        snprintf(names[n++], 260, "%s", fd.cFileName);
+    } while (FindNextFileA(h, &fd));
+    FindClose(h);
+#else
+    DIR *d = opendir(dir);
+    struct dirent *e;
+    if (!d) return 0;
+    while ((e = readdir(d)) && n < max) {
+        char p[MAXP];
+        if (e->d_name[0] == '.') continue;
+        snprintf(p, sizeof p, "%s/%s", dir, e->d_name);
+        if (is_dir(p) != want_dirs) continue;
+        snprintf(names[n++], 260, "%s", e->d_name);
+    }
+    closedir(d);
+#endif
+    return n;
+}
+
+/* busca 'file' (sin distinguir mayusculas) bajo root hasta 'depth' niveles */
+static int find_files(const char *root, const char *file, int depth, char out[][MAXP], int max, int n)
+{
+    static char names[MAXFILES][260];
+    char local[MAXFILES][260];
+    int nf = list_dir(root, names, MAXFILES, 0);
+    for (int i = 0; i < nf && n < max; i++)
+        if (!strcasecmp(names[i], file)) snprintf(out[n++], MAXP, "%s/%s", root, names[i]);
+    if (depth <= 0) return n;
+    int nd = list_dir(root, names, MAXFILES, 1);
+    memcpy(local, names, sizeof(local[0]) * (size_t)nd);
+    for (int i = 0; i < nd && n < max; i++) {
+        char sub[MAXP];
+        snprintf(sub, sizeof sub, "%s/%s", root, local[i]);
+        n = find_files(sub, file, depth - 1, out, max, n);
+    }
+    return n;
+}
+
+static int score_dir(const char *path, const char *want)
+{
+    /* coincidencia por prefijo de familia: CY8C24423B -> CY8C24... */
+    const char *b = strrchr(path, '/');
+    char dir[260];
+    int sc = 0;
+    if (!b) return 0;
+    snprintf(dir, sizeof dir, "%.*s", (int)(b - path), path);
+    b = strrchr(dir, '/');
+    b = b ? b + 1 : dir;
+    if (!strcasecmp(b, want)) return 100;
+    for (int i = 0; b[i] && want[i] && toupper((unsigned char)b[i]) == toupper((unsigned char)want[i]); i++) sc++;
+    /* mismo sufijo de familia: CY8C21234 ~ CY8C21x34 */
+    {
+        char dig[16] = "";
+        size_t k = 0;
+        for (const char *c = want + 4; *c && k + 1 < sizeof dig; c++) if (isdigit((unsigned char)*c)) dig[k++] = *c;
+        dig[k] = 0;
+        if (k >= 2 && strstr(b, dig + k - 2) && strlen(b) >= 2) sc += 2;
+    }
+    /* misma revision de silicio (sufijo A/B) */
+    size_t lb = strlen(b), lw = strlen(want);
+    if (lb && lw && isalpha((unsigned char)b[lb - 1]) && toupper((unsigned char)b[lb - 1]) == toupper((unsigned char)want[lw - 1])) sc += 3;
+    return sc;
+}
+
+/* Bibliotecas de enlace de PSoC Designer: -L<modelo>, cms.a de la familia y arith.a */
+static void auto_libs(char *out, size_t outsz)
+{
+    char lib[MAXP], s[MAXP], found[16][MAXP];
+    const char *model = (*cfg("LMM") && strcmp(cfg("LMM"), "0")) ? "LMM" : "SMM";
+    const char *base = *cfg("LIBDEVICE") ? cfg("LIBDEVICE") : cfg("BASEDEVICE");
+    int nomac = strstr(cfg("CFLAGS"), "nomac") != NULL;
+    snprintf(lib, sizeof lib, "%s/tools/lib", psocdir());
+    size_t o = 0;
+    shortp(lib, s);
+    o += (size_t)snprintf(out + o, outsz - o, "-L%s/%s", s, model);
+
+    int n = find_files(lib, "cms.a", 1, found, 16, 0), best = -1, bs = -1;
+    for (int i = 0; i < n; i++) { int sc = score_dir(found[i], base); if (sc > bs) { bs = sc; best = i; } }
+    if (best >= 0 && bs >= 6) { shortp(found[best], s); o += (size_t)snprintf(out + o, outsz - o, " %s", s); }
+    else fprintf(stderr, "psocbuild: aviso: no encuentro cms.a para %s en %s\n", base, lib);
+
+    char mroot[MAXP];
+    snprintf(mroot, sizeof mroot, "%s/%s", lib, model);
+    n = find_files(mroot, "arith.a", 3, found, 16, 0);
+    best = -1; bs = -1;
+    for (int i = 0; i < n; i++) {
+        char up[MAXP];
+        int sc = 0;
+        snprintf(up, sizeof up, "%s", found[i]);
+        for (char *c = up; *c; c++) *c = (char)toupper((unsigned char)*c);
+        int has_nomac = strstr(up, "NOMAC") != NULL, has_mac = !has_nomac && strstr(up, "/MAC") != NULL;
+        if (nomac ? has_nomac : has_mac) sc += 10;
+        if (strstr(up, "UASW")) sc += 2;
+        if (sc > bs) { bs = sc; best = i; }
+    }
+    if (best >= 0) { shortp(found[best], s); o += (size_t)snprintf(out + o, outsz - o, " %s", s); }
+    else fprintf(stderr, "psocbuild: aviso: no encuentro arith.a en %s\n", mroot);
+}
+
+/* reemplaza el valor de "NOMBRE: equ X" en un .inc; devuelve 1 si existia */
+static int patch_equ(char *buf, size_t cap, const char *name, const char *value)
+{
+    char key[96];
+    snprintf(key, sizeof key, "%s:", name);
+    size_t kl = strlen(key);
+    for (char *p = buf; (p = strstr(p, key)); p++) {
+        if (p != buf && p[-1] != '\n') continue;
+        char *eq = p + kl;
+        while (*eq == ' ' || *eq == '\t') eq++;
+        if (strncasecmp(eq, "equ", 3)) continue;
+        char *end = strchr(eq, '\n');
+        if (!end) end = eq + strlen(eq);
+        char repl[160];
+        snprintf(repl, sizeof repl, "%s\tequ\t%s\t; PsocDuino (menu del IDE)\r", key, value);
+        size_t rl = strlen(repl), tail = strlen(end);
+        if ((size_t)(p - buf) + rl + tail + 1 > cap) return 0;
+        memmove(p + rl, end, tail + 1);
+        memcpy(p, repl, rl);
+        return 1;
+    }
+    return 0;
+}
+
 /* ----------------------------------------------------------------- link */
 static int cmd_link(int argc, char **argv)
 {
-    const char *vdir = NULL, *outbase = NULL;
+    const char *vdir = NULL, *outbase = NULL, *vcc = NULL, *cpu = NULL;
     char *objs[1024];
     int no = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "-V") && i + 1 < argc) vdir = argv[++i];
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) outbase = argv[++i];
+        else if (!strcmp(argv[i], "--vcc") && i + 1 < argc) vcc = argv[++i];
+        else if (!strcmp(argv[i], "--cpu") && i + 1 < argc) cpu = argv[++i];
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (no < 1024) objs[no++] = argv[i];
     }
@@ -510,35 +685,104 @@ static int cmd_link(int argc, char **argv)
     load_variant(vdir);
 
     char outdir[MAXP], s[MAXP], cmd[MAXCMD], cwd[MAXP];
+    int r = 0;
     snprintf(outdir, sizeof outdir, "%s", outbase);
     slashes(outdir);
     char *sl = strrchr(outdir, '/');
     if (sl) *sl = 0; else snprintf(outdir, sizeof outdir, ".");
 
-    /* 1. boot.asm de la variante (con el vector del Sleep Timer de PsocDuino) */
-    char bootobj[MAXP], bootcap[MAXP];
-    snprintf(bootobj, sizeof bootobj, "%s/boot.o", outdir);
-    absolute(bootobj, s);
-    snprintf(bootobj, sizeof bootobj, "%s", s);
-    snprintf(bootcap, sizeof bootcap, "%s/boot.log", outdir);
-    absolute(bootcap, s);
-    snprintf(bootcap, sizeof bootcap, "%s", s);
-    snprintf(cmd, sizeof cmd, "%s", tool("iasm8c"));
-    std_includes(cmd);
-    shortp(bootobj, s);
-    { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s boot.asm", s); }
-    if (!getcwd(cwd, sizeof cwd)) die("getcwd");
-    if (chdir(variant_dir)) die("no puedo entrar en %s", variant_dir);
-    int r = run(cmd, bootcap);
-    if (chdir(cwd)) die("chdir");
-    if (show_output(bootcap, NULL, NULL) || r) { fprintf(stderr, "psocbuild: error ensamblando boot.asm\n"); return 1; }
-    remove(bootcap);
+    /* 1. copia de boot.asm + memory.inc + lib/GlobalParams.inc con los menus */
+    char bdir[MAXP], p1[MAXP], p2[MAXP];
+    snprintf(bdir, sizeof bdir, "%s/psoc_boot", outdir);
+    absolute(bdir, s);
+    snprintf(bdir, sizeof bdir, "%s", s);
+    snprintf(p1, sizeof p1, "%s/lib", bdir);
+    mkdirs(p1);
+    const char *copies[] = { "boot.asm", "memory.inc" };
+    for (int i = 0; i < 2; i++) {
+        snprintf(p1, sizeof p1, "%s/%s", variant_dir, copies[i]);
+        snprintf(p2, sizeof p2, "%s/%s", bdir, copies[i]);
+        if (copy_file(p1, p2)) die("falta %s en la variante", p1);
+    }
+    snprintf(p1, sizeof p1, "%s/lib/GlobalParams.inc", variant_dir);
+    long gl;
+    char *gp = read_file(p1, &gl);
+    if (!gp) die("falta %s", p1);
+    size_t gcap = (size_t)gl + 4096;
+    gp = realloc(gp, gcap);
+    if (cpu && *cpu) {
+        char v[8];
+        snprintf(v, sizeof v, "%sh", cpu);
+        patch_equ(gp, gcap, "CPU_CLOCK", v);
+        patch_equ(gp, gcap, "CPU_CLOCK_JUST", v);
+    }
+    patch_equ(gp, gcap, "SLEEP_TIMER", "0h");        /* 512 Hz para millis() */
+    patch_equ(gp, gcap, "SLEEP_TIMER_JUST", "0h");
+    if (vcc && !strcmp(vcc, "3") && cpu && !strcmp(cpu, "3"))
+        fprintf(stderr, "psocbuild: aviso: CPU a 24 MHz con 3.3 V esta fuera de la hoja de datos "
+                        "(maximo 12 MHz); use 12 MHz o alimente a 5 V.\n");
+    if (vcc && !strcmp(vcc, "3")) {
+        patch_equ(gp, gcap, "POWER_SETTING", "08h");  /* 3.3 V, IMO 24 MHz */
+        patch_equ(gp, gcap, "SUPPLY_VOLTAGE", "0h");  /* familia CY8C27x43 */
+        patch_equ(gp, gcap, "TRIP_VOLTAGE", "0h");    /* LVD minimo: seguro a 3.3 V */
+        patch_equ(gp, gcap, "TRIP_VOLTAGE_JUST", "0h");
+    } else if (vcc && !strcmp(vcc, "5")) {
+        patch_equ(gp, gcap, "POWER_SETTING", "10h");  /* 5 V, IMO 24 MHz */
+        patch_equ(gp, gcap, "SUPPLY_VOLTAGE", "1h");
+    }
+    snprintf(p2, sizeof p2, "%s/lib/GlobalParams.inc", bdir);
+    write_file(p2, gp, (long)strlen(gp));
+    free(gp);
 
-    /* 2. linkfile con las mismas opciones que genero PSoC Designer */
+    /* 2. ensamblar boot.asm y los .asm de lib/ de la variante (configuracion global) */
+    char asmobj[64][MAXP];
+    int na = 0;
+    {
+        static char names[MAXFILES][260];
+        char vlib[MAXP];
+        snprintf(vlib, sizeof vlib, "%s/lib", variant_dir);
+        int nf = list_dir(vlib, names, MAXFILES, 0);
+        char srcs[65][MAXP];
+        int ns = 0;
+        snprintf(srcs[ns++], MAXP, "boot.asm");
+        for (int i = 0; i < nf && ns < 65; i++)
+            if (!strcasecmp(ext(names[i]), ".asm")) snprintf(srcs[ns++], MAXP, "%s/%s", vlib, names[i]);
+        if (!getcwd(cwd, sizeof cwd)) die("getcwd");
+        for (int i = 0; i < ns; i++) {
+            char obj[MAXP], cap2[MAXP], so[MAXP], ss[MAXP], pbl[MAXP];
+            const char *bn = strrchr(srcs[i], '/');
+            bn = bn ? bn + 1 : srcs[i];
+            snprintf(obj, sizeof obj, "%s/%.*s.o", bdir, (int)(strlen(bn) - 4), bn);
+            snprintf(cap2, sizeof cap2, "%s/asm.log", bdir);
+            snprintf(cmd, sizeof cmd, "%s", tool("iasm8c"));
+            shortp(bdir, pbl);
+            { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -I%s/lib -I%s", pbl, pbl); }
+            std_includes(cmd);
+            shortp(obj, so);
+            if (i == 0) snprintf(ss, sizeof ss, "boot.asm"); else shortp(srcs[i], ss);
+            { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s %s", so, ss); }
+            if (chdir(bdir)) die("no puedo entrar en %s", bdir);
+            r = run(cmd, cap2);
+            if (chdir(cwd)) die("chdir");
+            if (show_output(cap2, NULL, NULL) || r) { fprintf(stderr, "psocbuild: error ensamblando %s\n", bn); return 1; }
+            remove(cap2);
+            if (na < 64) snprintf(asmobj[na++], MAXP, "%s", obj);
+        }
+    }
+
+    /* 3. linkfile con las opciones de PSoC Designer para este chip */
     char lf[MAXP], flags[MAXP], libs[MAXCMD];
     snprintf(lf, sizeof lf, "%s/linkfile", outdir);
     expand(cfg("LINK_FLAGS"), flags, sizeof flags);
-    expand(cfg("LINK_LIBS"), libs, sizeof libs);
+    if (!*cfg("LINK_LIBS") || strstr(cfg("LINK_LIBS"), "@AUTO@")) auto_libs(libs, sizeof libs);
+    else {
+        expand(cfg("LINK_LIBS"), libs, sizeof libs);
+        /* los .asm de lib/ ya se ensamblaron: quitar libpsoc.a para no duplicar simbolos */
+        char vl[MAXP], tok[MAXP];
+        shortp(variant_dir, vl);
+        snprintf(tok, sizeof tok, "%s/lib/libpsoc.a", vl);
+        replace_all(libs, sizeof libs, tok, "");
+    }
     FILE *f = fopen(lf, "w");
     if (!f) die("no puedo escribir %s", lf);
     /* nombre interno sin puntos: ImageCraft podria tomar ".ino" como extension */
@@ -546,8 +790,10 @@ static int cmd_link(int argc, char **argv)
     snprintf(fw, sizeof fw, "%s/psocduino_fw", outdir);
     shortp(fw, s);
     fprintf(f, "%s -m\n -o\"%s\"\n", flags, s);
-    shortp(bootobj, s);
-    fprintf(f, "%s\n", s);
+    for (int i = 0; i < na; i++) { /* boot.o primero (vectores en 0) */
+        shortp(asmobj[i], s);
+        fprintf(f, "%s\n", s);
+    }
     for (int i = 0; i < no; i++) {
         shortp(objs[i], s);
         fprintf(f, "%s\n", s);
@@ -707,11 +953,207 @@ static int patch_sleep_vector(char *boot, size_t cap)
     return 0;
 }
 
+
+/* ------------------------------------------- importar proyecto solo generado */
+static char *xml_attr(const char *xml, const char *name, char *out, size_t outsz)
+{
+    char key[64];
+    snprintf(key, sizeof key, " %s=\"", name);
+    const char *p = strstr(xml, key);
+    out[0] = 0;
+    if (!p) return out;
+    p += strlen(key);
+    size_t i = 0;
+    while (*p && *p != '"' && i + 1 < outsz) out[i++] = *p++;
+    out[i] = 0;
+    return out;
+}
+
+/* KB de flash por familia (CY8C2F xSS: F = familia, SS = sufijo) */
+static int flash_kb(const char *dev)
+{
+    const char *d = dev;
+    while (*d && !isdigit((unsigned char)d[0])) d++;   /* "8C21234" */
+    if (*d == '8') d += 2;                              /* salta "8C" */
+    if (strlen(d) < 5) return 16;
+    int fam = (d[0] - '0') * 10 + (d[1] - '0'), suf = (d[3] - '0') * 10 + (d[4] - '0');
+    switch (fam) {
+    case 21: return suf == 23 ? 4 : 8;
+    case 22: return suf == 13 ? 2 : 16;
+    case 23: return 8;
+    case 24: return suf == 23 ? 4 : 16;
+    case 27: return 16;
+    case 28: return 16;
+    case 29: return 32;
+    }
+    return 16;
+}
+
+static int num_ports(const char *gp)
+{
+    int n = 0;
+    for (int i = 0; i < 8; i++) {
+        char k[32];
+        snprintf(k, sizeof k, "PORT_%d_DRIVE_0:", i);
+        if (strstr(gp, k)) n = i + 1;
+    }
+    return n ? n : 3;
+}
+
+static void copy_lib_files(const char *proj, const char *vdir)
+{
+    static char names[MAXFILES][260];
+    char src[MAXP], dst[MAXP];
+    snprintf(src, sizeof src, "%s/lib", proj);
+    snprintf(dst, sizeof dst, "%s/lib", vdir);
+    mkdirs(dst);
+    int n = list_dir(src, names, MAXFILES, 0);
+    for (int i = 0; i < n; i++) {
+        char a[MAXP], b[MAXP];
+        snprintf(a, sizeof a, "%s/%s", src, names[i]);
+        snprintf(b, sizeof b, "%s/%s", dst, !strcasecmp(names[i], "libpsoc.a") ? "libpsoc.a" : names[i]);
+        copy_file(a, b);
+    }
+}
+
+/* memory.inc desde la plantilla y SYS_INC_CONTENTS ("A:_equ_1 B:_equ_0h ...") */
+static void write_memory_inc(const char *path, const char *sysinc, const char *tools)
+{
+    char eqs[2048] = "";
+    size_t o = 0;
+    char tmp[2048];
+    snprintf(tmp, sizeof tmp, "%s", sysinc);
+    for (char *t = strtok(tmp, " "); t; t = strtok(NULL, " ")) {
+        char *e = strstr(t, ":_equ_");
+        if (!e) continue;
+        *e = 0;
+        o += (size_t)snprintf(eqs + o, sizeof eqs - o, "%s: equ %s   \r\n", t, e + 6);
+    }
+    o += (size_t)snprintf(eqs + o, sizeof eqs - o,
+                          "SYSTEM_TOOLS: equ %s   \r\nSYSTEM_IDXPG_TRACKS_STK_PP: equ 1   \r\n"
+                          "SYSTEM_IDXPG_TRACKS_IDX_PP: equ 0   \r\nSYSTEM_MULTIPAGE_STACK: equ 0 ",
+                          *tools ? tools : "1");
+    const char *at = strstr(MEMORY_INC_TPL, "@SYSINC@");
+    FILE *f = fopen(path, "wb");
+    if (!f) die("no puedo escribir %s", path);
+    fwrite(MEMORY_INC_TPL, 1, (size_t)(at - MEMORY_INC_TPL), f);
+    fputs(eqs, f);
+    fputs(at + 8, f);
+    fclose(f);
+}
+
+static int patch_sleep_vector(char *boot, size_t cap);
+static long cpu_hz(const char *gp);
+
+static int import_generated(const char *proj, const char *vdir)
+{
+    char p[MAXP], q[MAXP], base[128], disp[128], pkg[64];
+    snprintf(p, sizeof p, "%s/opts.txt", proj);
+    char *opts = read_file(p, NULL);
+    snprintf(p, sizeof p, "%s/PSoCConfig.xml", proj);
+    char *xml = read_file(p, NULL);
+    snprintf(p, sizeof p, "%s/lib/GlobalParams.inc", proj);
+    char *gp = read_file(p, NULL);
+    snprintf(q, sizeof q, "%s/boot.asm", proj);
+    if (!opts || !xml || !gp || !exists(q))
+        die("el proyecto %s no tiene la configuracion generada.\n"
+            "  En PSoC Designer use Build -> Generate/Build (F6) y vuelva a importar.", proj);
+    xml_attr(xml, "BASE_DEVICE", base, sizeof base);
+    xml_attr(xml, "DEVICE_DISPLAY_NAME", disp, sizeof disp);
+    xml_attr(xml, "PACKAGE_TYPE", pkg, sizeof pkg);
+    if (!*base) die("PSoCConfig.xml sin BASE_DEVICE");
+
+    char relstart[32], lastram[32], lmm[16], cflags[MAXP], codec[256], sysinc[2048], tools[16];
+    snprintf(relstart, sizeof relstart, "%s", mk_get(opts, "RELSTART"));
+    snprintf(lastram, sizeof lastram, "%s", mk_get(opts, "LASTRAM"));
+    snprintf(lmm, sizeof lmm, "%s", mk_get(opts, "LMM"));
+    snprintf(codec, sizeof codec, "%s", mk_get(opts, "CODECOMPRESSOR"));
+    snprintf(sysinc, sizeof sysinc, "%s", mk_get(opts, "SYS_INC_CONTENTS"));
+    snprintf(tools, sizeof tools, "%s", mk_get(opts, "SYSTEM_TOOLS"));
+    snprintf(cflags, sizeof cflags, "%s", mk_get(opts, "MORE_CFLAGS"));
+    {
+        char cd[MAXP];
+        snprintf(cd, sizeof cd, "%s", mk_get(opts, "CDEFINES"));
+        if (*cd) { size_t n = strlen(cflags); snprintf(cflags + n, sizeof cflags - n, " %s", cd); }
+    }
+    int kb = flash_kb(base);
+    char lastrom[16];
+    snprintf(lastrom, sizeof lastrom, "0x%x", kb * 1024 - 1);
+
+    mkdirs(vdir);
+    const char *top[] = { "boot.asm", "boot.tpl", "flashsecurity.txt", "opts.txt", "PSoCConfig.xml" };
+    for (unsigned i = 0; i < sizeof top / sizeof top[0]; i++) {
+        snprintf(p, sizeof p, "%s/%s", proj, top[i]);
+        snprintf(q, sizeof q, "%s/%s%s", vdir, top[i], i >= 3 ? ".orig" : "");
+        if (exists(p)) copy_file(p, q);
+    }
+    copy_lib_files(proj, vdir);
+    snprintf(p, sizeof p, "%s/memory.inc", proj);
+    snprintf(q, sizeof q, "%s/memory.inc", vdir);
+    if (exists(p)) copy_file(p, q);
+    else write_memory_inc(q, sysinc, tools);
+
+    snprintf(q, sizeof q, "%s/boot.asm", vdir);
+    long bl;
+    char *boot = read_file(q, &bl);
+    size_t cap = (size_t)bl + 1024;
+    boot = realloc(boot, cap);
+    if (!boot || patch_sleep_vector(boot, cap)) die("no encuentro el vector 64h (Sleep Timer) en boot.asm");
+    write_file(q, boot, (long)strlen(boot));
+    free(boot);
+
+    long hz = cpu_hz(gp);
+    snprintf(q, sizeof q, "%s/variant.cfg", vdir);
+    FILE *f = fopen(q, "w");
+    if (!f) die("no puedo escribir %s", q);
+    fprintf(f, "# Generado por 'psocbuild import' (proyecto generado, sin compilar)\n");
+    fprintf(f, "DEVICE=%s\nDISPLAY=%s\nPACKAGE=%s\nBASEDEVICE=%s\nPSOCDIR=\nINCLUDE_SUB=\n", base, disp, pkg, base);
+    fprintf(f, "F_CPU=%ld\nLMM=%s\nCFLAGS=%s\n", hz ? hz : 24000000L, *lmm ? lmm : "0", cflags);
+    fprintf(f, "LINK_FLAGS=-F0x30 -g -blit:%s.%s -bdata:0.%s -rwh:SSCParmBlk:0x00F7.0x00FF%s%s\n",
+            relstart, lastrom, lastram, *codec ? " " : "", codec);
+    fprintf(f, "LINK_LIBS=@AUTO@\nLASTROM=%s\nLASTRAM=%s\nNUM_PORTS=%d\nFLASH_KB=%d\n", lastrom, lastram, num_ports(gp), kb);
+    fclose(f);
+    printf("Variante importada: %s (%s, %s), %d KB, puertos P0..P%d, %s\n", disp, base, pkg, kb,
+           num_ports(gp) - 1, (*lmm && strcmp(lmm, "0")) ? "modelo de memoria grande" : "modelo pequeno");
+    free(opts); free(xml); free(gp);
+    return 0;
+}
+
+/* baja hasta 3 niveles buscando la carpeta con boot.asm/opts.txt/project.mk */
+static int find_project(const char *root, char *out, int depth)
+{
+    char t[MAXP];
+    const char *marks[] = { "project.mk", "opts.txt", "PSoCConfig.xml" };
+    for (int i = 0; i < 3; i++) {
+        snprintf(t, sizeof t, "%s/%s", root, marks[i]);
+        if (exists(t)) { snprintf(out, MAXP, "%s", root); return 1; }
+    }
+    if (depth <= 0) return 0;
+    static char names[MAXFILES][260];
+    char local[64][260];
+    int n = list_dir(root, names, MAXFILES, 1);
+    if (n > 64) n = 64;
+    memcpy(local, names, sizeof(local[0]) * (size_t)n);
+    for (int i = 0; i < n; i++) {
+        if (!strcasecmp(local[i], "lib") || !strcasecmp(local[i], "backup") || !strcasecmp(local[i], "obj") ||
+            !strcasecmp(local[i], "output") || !strcasecmp(local[i], "Templates")) continue;
+        snprintf(t, sizeof t, "%s/%s", root, local[i]);
+        if (find_project(t, out, depth - 1)) return 1;
+    }
+    return 0;
+}
+
 static int cmd_import(int argc, char **argv)
 {
     if (argc < 2) die("uso: psocbuild import CARPETA_PROYECTO_PSOC_DESIGNER CARPETA_VARIANTE");
     char proj[MAXP], vdir[MAXP], p[MAXP], q[MAXP];
     absolute(argv[0], proj);
+    {
+        char found[MAXP];
+        if (!find_project(proj, found, 3))
+            die("no encuentro un proyecto de PSoC Designer en %s (falta project.mk / opts.txt)", proj);
+        snprintf(proj, sizeof proj, "%s", found);
+    }
     if (!strchr(argv[1], '/') && !strchr(argv[1], '\\')) /* solo el nombre: carpeta de usuario */
         snprintf(vdir, sizeof vdir, "%s/%s", user_variants(), argv[1]);
     else absolute(argv[1], vdir);
@@ -719,6 +1161,7 @@ static int cmd_import(int argc, char **argv)
 
     /* el proyecto puede ser la carpeta del workspace o la del proyecto */
     snprintf(p, sizeof p, "%s/project.mk", proj);
+    if (!exists(p)) return import_generated(proj, vdir);
     if (!exists(p)) die("no encuentro %s: elija la carpeta del proyecto (la que tiene project.mk,\n"
                         "  boot.asm y lib/) y compilelo antes en PSoC Designer", p);
     char *mk = read_file(p, NULL);
@@ -842,6 +1285,7 @@ static int cmd_import(int argc, char **argv)
     snprintf(p, sizeof p, "%s/lib/GlobalParams.inc", vdir);
     char *gp = read_file(p, NULL);
     long hz = gp ? cpu_hz(gp) : 0;
+    int nports = gp ? num_ports(gp) : 3;
     free(gp);
 
     char cflags[MAXP];
@@ -860,6 +1304,7 @@ static int cmd_import(int argc, char **argv)
     fprintf(f, "LINK_FLAGS=%s\nLINK_LIBS=%s\n", flags, libs);
     fprintf(f, "LASTROM=%s\n", mk_get(mk, "LASTROM"));
     fprintf(f, "LASTRAM=%s\n", mk_get(mk, "LASTRAM"));
+    fprintf(f, "NUM_PORTS=%d\n", nports);
     fclose(f);
     printf("Variante %s importada: %s (base %s), CPU %ld Hz%s\n", vdir, device, base, hz,
            (*lmm && strcmp(lmm, "0")) ? ", modelo de memoria grande" : "");

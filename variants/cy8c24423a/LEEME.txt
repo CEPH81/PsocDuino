@@ -1,4 +1,0 @@
-Variante cy8c24423a: vacia hasta importarla.
-Ejecute desde la carpeta del nucleo:
-  importar_variante.bat "C:\ruta\al\proyecto\de\PSoC Designer" cy8c24423a
-Ver docs/compilacion.md

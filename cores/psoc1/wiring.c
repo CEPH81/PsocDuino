@@ -18,20 +18,15 @@
 
 void psocduino_gpio_init(void);
 
-uint8_t psocduino_spin_n;           /* parametro para el ensamblador */
-uint8_t psocduino_cal_lo, psocduino_cal_hi;
 static volatile unsigned long ms_count;
 static volatile unsigned int us_acc;
 static unsigned int us_per_tick = 1953; /* 1/512 s con el ILO nominal */
 
-void psocduino_spin9(uint8_t n)
-{
-    if (!n) return;
-    psocduino_spin_n = n;
-    PSD_ASM("mov A, [_psocduino_spin_n]");
-    PSD_ASM("psocduino_spin_loop: dec A");
-    PSD_ASM("jnz psocduino_spin_loop");
-}
+/* psocduino_spin9() y psocduino_measure_tick() estan en psocduino_asm.S */
+#ifdef PSOCDUINO_HOST_TEST
+void psocduino_spin9(uint8_t n) { (void)n; }
+unsigned int psocduino_measure_tick(void) { return 2038; } /* 24 MHz, ILO nominal */
+#endif
 
 #ifndef PSOCDUINO_HOST_TEST
 #pragma interrupt_handler psocduino_sleep_isr
@@ -43,26 +38,6 @@ void psocduino_sleep_isr(void)
         us_acc -= 1000;
         ms_count++;
     }
-}
-
-/* Cuenta iteraciones de 23 ciclos durante un tic del Sleep Timer. */
-static unsigned int measure_tick(void)
-{
-    PSD_INT_CLR0 = (uint8_t)~PSD_INT_SLEEP;            /* borrar pendiente */
-    while (!(PSD_INT_CLR0 & PSD_INT_SLEEP)) { }        /* sincronizar */
-    PSD_INT_CLR0 = (uint8_t)~PSD_INT_SLEEP;
-    PSD_ASM("mov X, 0");
-    PSD_ASM("mov A, 0");
-    PSD_ASM("psocduino_cal_loop: tst reg[0DAh], 40h");
-    PSD_ASM("jnz psocduino_cal_done");
-    PSD_ASM("inc A");
-    PSD_ASM("jnc psocduino_cal_loop");
-    PSD_ASM("inc X");
-    PSD_ASM("jmp psocduino_cal_loop");
-    PSD_ASM("psocduino_cal_done: mov [_psocduino_cal_lo], A");
-    PSD_ASM("mov [_psocduino_cal_hi], X");
-    PSD_INT_CLR0 = (uint8_t)~PSD_INT_SLEEP;
-    return (unsigned int)psocduino_cal_hi << 8 | psocduino_cal_lo;
 }
 
 void psocduino_init(void)
@@ -79,7 +54,7 @@ void psocduino_init(void)
     PSD_BANK0();
     PSD_INT_MSK0 = (uint8_t)(PSD_INT_MSK0 | PSD_INT_SLEEP);
 
-    n = measure_tick();
+    n = psocduino_measure_tick();
     cycles = (unsigned long)n * 23UL + (unsigned long)(n >> 8) * 9UL;
     if (cycles > 1000UL) /* cycles * 1e6 / F_CPU sin desbordar */
         us_per_tick = (unsigned int)((cycles * 1000UL) / (F_CPU / 1000UL));
