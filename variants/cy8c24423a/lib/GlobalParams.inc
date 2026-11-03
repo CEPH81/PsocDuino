@@ -62,9 +62,9 @@ CLOCK_DIV_VC1_JUST:		equ	f0h	;VC1 clock divider justified
 CLOCK_DIV_VC2:			equ	fh	;VC2 clock divider
 CLOCK_DIV_VC2_MASK:		equ	fh	;VC2 clock divider mask
 CLOCK_DIV_VC2_JUST:		equ	fh	;VC2 clock divider justified
-CLOCK_INPUT_VC3:		equ	3h	;VC3 clock source
+CLOCK_INPUT_VC3:		equ	2h	;VC3 clock source
 CLOCK_INPUT_VC3_MASK:	equ	3h	;VC3 clock source mask
-CLOCK_INPUT_VC3_JUST:	equ	3h	;VC3 clock source justified
+CLOCK_INPUT_VC3_JUST:	equ	2h	;VC3 clock source justified
 CLOCK_DIV_VC3:			equ	ffh	;VC3 clock divider
 CLOCK_DIV_VC3_MASK:		equ	ffh	;VC3 clock divider mask
 CLOCK_DIV_VC3_JUST:		equ	ffh	;VC3 clock divider justified

@@ -53,7 +53,7 @@ LoadConfigTBL_base_cy8c24423a_Bank1:
 	db		e1h, ffh		; OscillatorControl_1 register (OSC_CR1)
 	db		e2h, 00h		; OscillatorControl_2 register (OSC_CR2)
 	db		dfh, ffh		; OscillatorControl_3 register (OSC_CR3)
-	db		deh, 03h		; OscillatorControl_4 register (OSC_CR4)
+	db		deh, 02h		; OscillatorControl_4 register (OSC_CR4)
 	db		ddh, 00h		; OscillatorGlobalBusEnableControl register (OSC_GO_EN)
 	db		ffh
 AREA psoc_config(rom, rel)

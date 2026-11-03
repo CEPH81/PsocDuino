@@ -32,9 +32,9 @@
 #define CLOCK_DIV_VC2          0xf     // VC2 clock divider 
 #define CLOCK_DIV_VC2_MASK     0xf     // VC2 clock divider mask
 #define CLOCK_DIV_VC2_JUST     0xf     // VC2 clock divider justified
-#define CLOCK_INPUT_VC3        0x3     // VC3 clock source
+#define CLOCK_INPUT_VC3        0x2     // VC3 clock source
 #define CLOCK_INPUT_VC3_MASK   0x3     // VC3 clock source mask
-#define CLOCK_INPUT_VC3_JUST   0x3     // VC3 clock source justified
+#define CLOCK_INPUT_VC3_JUST   0x2     // VC3 clock source justified
 #define CLOCK_DIV_VC3          0xff    // VC3 clock divider
 #define CLOCK_DIV_VC3_MASK     0xff    // VC3 clock divider mask
 #define CLOCK_DIV_VC3_JUST     0xff    // VC3 clock divider justified
