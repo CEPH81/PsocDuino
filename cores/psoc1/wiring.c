@@ -37,7 +37,8 @@ void psocduino_gpio_init(void);
 
 static volatile unsigned long ms_count;
 static volatile unsigned int us_acc;
-static unsigned int us_per_tick = 1953; /* 1/512 s con el ILO nominal */
+/* sin valores iniciales: en LMM irian a 'xidata' (aviso __xidata_start) */
+static unsigned int us_per_tick;
 
 /* psocduino_spin9() y psocduino_measure_tick() estan en psocduino_asm.S */
 #ifdef PSOCDUINO_HOST_TEST
@@ -75,7 +76,7 @@ void psocduino_init(void)
     n = psocduino_measure_tick();
     us = (n / PSD_HALF_US) * 46U + ((n % PSD_HALF_US) * 46U) / PSD_HALF_US
          + ((n >> 8) * 18U) / PSD_HALF_US;
-    if (us > 100) us_per_tick = us;
+    us_per_tick = us > 100 ? us : 1953; /* 1953 = 1/512 s con el ILO nominal */
 
     ms_count = 0;
     us_acc = 0;

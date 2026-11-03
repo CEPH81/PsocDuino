@@ -8,7 +8,7 @@ long map(long x, long in_min, long in_max, long out_min, long out_max)
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-static unsigned long rnd_state = 1;
+static unsigned long rnd_state; /* 0 = sin semilla (se usa 1) */
 
 void randomSeed(unsigned long seed)
 {
@@ -18,6 +18,7 @@ void randomSeed(unsigned long seed)
 long random(long howbig)
 {
     if (howbig <= 0) return 0;
+    if (!rnd_state) rnd_state = 1;
     rnd_state = rnd_state * 1103515245UL + 12345UL;
     return (long)((rnd_state >> 8) % (unsigned long)howbig);
 }

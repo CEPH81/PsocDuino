@@ -977,6 +977,8 @@ static int cmd_link(int argc, char **argv)
     if (b) {
         for (char *line = strtok(b, "\n"); line; line = strtok(NULL, "\n")) {
             if (strstr(line, "is unused") && !verbose) continue;
+            /* informativos del enlazador LMM: solo con salida detallada */
+            if (!verbose && (strstr(line, "MM info:") || strstr(line, "idata dump at"))) continue;
             if (strstr(line, "not large enough")) full = 1;
             if (line[0] == '!' && line[1] == 'E') errs++;
             fprintf(stderr, "%s\n", line);
