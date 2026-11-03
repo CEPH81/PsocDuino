@@ -73,7 +73,7 @@ void issp_set_device(issp_t *t, const psoc_device_t *dev)
 }
 
 /* Send a '0'/'1' vector followed by pad zero clocks; rx[] gets SDATA samples. */
-static int send(issp_t *t, const char *v, int pad, int *lenp)
+static int send_vec(issp_t *t, const char *v, int pad, int *lenp)
 {
     int n = (int)strlen(v);
     if (n + pad > (int)sizeof rx) return ISSP_ERR_USB;
@@ -115,7 +115,7 @@ static int wait_poll(issp_t *t, int len)
 
 static int exec_vec(issp_t *t, const char *v)
 {
-    int len, e = send(t, v, 10, &len);
+    int len, e = send_vec(t, v, 10, &len);
     return e ? e : wait_poll(t, len);
 }
 
@@ -142,15 +142,15 @@ int issp_connect(issp_t *t)
         if (i >= 100) return ISSP_ERR_NOTARGET;
     }
     /* INIT-1 (D0 goes low with the first bit: XRES released) */
-    if ((e = send(t, V_INIT1, 368, &len))) return e;
+    if ((e = send_vec(t, V_INIT1, 368, &len))) return e;
     if (!hi(len + 2) || hi(len + 367)) return fail_at("INIT-1", len);
-    if ((e = send(t, V_INIT2, 40, &len))) return e;
+    if ((e = send_vec(t, V_INIT2, 40, &len))) return e;
     if (!hi(len + 2) || hi(len + 39)) return fail_at("INIT-2", len);
-    if ((e = send(t, V_INIT3_PRE, 0, NULL))) return e;
-    if ((e = send(t, t->v3 ? V_INIT3_3V3 : V_INIT3_5V, 0, NULL))) return e;
-    if ((e = send(t, V_ID_SETUP, 20, &len))) return e;
+    if ((e = send_vec(t, V_INIT3_PRE, 0, NULL))) return e;
+    if ((e = send_vec(t, t->v3 ? V_INIT3_3V3 : V_INIT3_5V, 0, NULL))) return e;
+    if ((e = send_vec(t, V_ID_SETUP, 20, &len))) return e;
     if (!hi(len + 2) || hi(len + 19)) return fail_at("ID-SETUP", len);
-    if ((e = send(t, V_READ_ID, 0, NULL))) return e;
+    if ((e = send_vec(t, V_READ_ID, 0, NULL))) return e;
     t->id = (uint16_t)(rx_byte(13) << 8 | rx_byte(35));
     return ISSP_OK;
 }
@@ -163,7 +163,7 @@ int issp_set_bank(issp_t *t, int bank)
     char v[80];
     strcpy(v, V_SET_BANK);
     put8(v, 33, (unsigned)bank);
-    return send(t, v, 0, NULL);
+    return send_vec(t, v, 0, NULL);
 }
 
 static int set_block(issp_t *t, int block)
@@ -171,7 +171,7 @@ static int set_block(issp_t *t, int block)
     char v[32];
     strcpy(v, V_SET_BLOCK);
     put8(v, 11, (unsigned)block);
-    return send(t, v, 0, NULL);
+    return send_vec(t, v, 0, NULL);
 }
 
 int issp_program_block(issp_t *t, int bank, int block, const uint8_t data[64])
@@ -197,7 +197,7 @@ int issp_read_block(issp_t *t, int bank, int block, uint8_t data[64])
     uint8_t spi[192];
     int len, e;
     if ((e = set_block(t, block))) return e;
-    if ((e = send(t, V_VERIFY_SETUP, 60, &len))) return e;
+    if ((e = send_vec(t, V_VERIFY_SETUP, 60, &len))) return e;
     if (!hi(len + 3)) return ISSP_ERR_PROTECTED;
     if (hi(len + 59)) { /* still busy: poll a little longer */
         int i;
@@ -233,7 +233,7 @@ int issp_secure(issp_t *t, const uint8_t *sec, int len)
             unsigned val = idx < len ? sec[idx] : 0;
             for (int b = 0; b < 6; b++) v[5 + b] = (i >> (5 - b)) & 1 ? '1' : '0';
             put8(v, 11, val);
-            if ((e = send(t, v, 0, NULL))) return e;
+            if ((e = send_vec(t, v, 0, NULL))) return e;
         }
         if ((e = exec_vec(t, t->dev->secure))) return e;
     }
@@ -266,7 +266,7 @@ int issp_checksum(issp_t *t, uint16_t *sum)
         int pos = find_mem_fa(v);
         if (pos > 0) put8(v, pos, (unsigned)nblk & 0xFF); /* 256 -> 0 */
         if ((e = exec_vec(t, v))) return e;
-        if ((e = send(t, V_READ_CHECKSUM, 0, NULL))) return e;
+        if ((e = send_vec(t, V_READ_CHECKSUM, 0, NULL))) return e;
         total += (unsigned)(rx_byte(13) << 8 | rx_byte(35));
     }
     *sum = (uint16_t)total;
