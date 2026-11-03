@@ -78,8 +78,7 @@ ch341_t *ch341_open_dll(int index)
     HMODULE lib = LoadLibraryA("CH341DLL.DLL"); /* 32-bit, ships with the original tool */
 #endif
     if (!lib) {
-        fprintf(stderr, "psocprog: CH341DLL.DLL not found (install the WCH CH341PAR driver "
-                        "or put the DLL next to psocprog.exe)\n");
+        fprintf(stderr, "psocprog: no encuentro CH341DLL.DLL (driver CH341PAR de WCH)\n");
         return NULL;
     }
     dll_t *w = calloc(1, sizeof *w);
@@ -98,7 +97,7 @@ ch341_t *ch341_open_dll(int index)
         goto fail;
     }
     if (op(w->idx) == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "psocprog: CH341A not present (is the programmer plugged in?)\n");
+        fprintf(stderr, "psocprog: CH341DLL: no hay CH341A con el driver de WCH\n");
         goto fail;
     }
     ss(w->idx, 0x80); /* MSB first, as the original tool */

@@ -7,7 +7,7 @@
 ch341_t *ch341_open_libusb(int index)
 {
     (void)index;
-    fprintf(stderr, "psocprog: built without libusb support\n");
+    fprintf(stderr, "psocprog: compilado sin libusb\n");
     return NULL;
 }
 #else
@@ -84,14 +84,14 @@ ch341_t *ch341_open_libusb(int index)
         if (seen++ != index) continue;
         int r = libusb_open(list[i], &u->h);
         if (r) {
-            fprintf(stderr, "psocprog: cannot open CH341A: %s%s\n", libusb_error_name(r),
+            fprintf(stderr, "psocprog: libusb: el CH341A esta conectado pero no se puede abrir: %s%s\n", libusb_error_name(r),
                     r == LIBUSB_ERROR_ACCESS ? " (permission denied: install the udev rule)" : "");
             u->h = NULL;
         }
     }
     if (list) libusb_free_device_list(list, 1);
     if (!u->h) {
-        if (!seen) fprintf(stderr, "psocprog: CH341A (1a86:5512) not found\n");
+        if (!seen) fprintf(stderr, "psocprog: libusb: no hay ningun CH341A (1a86:5512) conectado\n");
         lu_close(u);
         return NULL;
     }

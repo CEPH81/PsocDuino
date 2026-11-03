@@ -66,10 +66,12 @@ jobs:
         with:
           msystem: ${{ matrix.sys }}
           install: make
-          pacboy: gcc:p
-      - name: Build (psocprog con backend DLL + psocbuild)
+          pacboy: gcc:p libusb:p pkgconf:p
+      - name: Build (psocprog con CH341DLL + libusb/WinUSB, y psocbuild)
         run: |
-          make -C tools/psocprog CC=gcc NO_LIBUSB=1 CFLAGS="-O2 -static" psocprog
+          make -C tools/psocprog CC=gcc CFLAGS="-O2 -static" \
+            USB_CFLAGS="$(pkg-config --cflags libusb-1.0)" \
+            USB_LIBS="$(pkg-config --static --libs libusb-1.0)" psocprog
           make -C tools/psocbuild CC=gcc CFLAGS="-O2 -static"
           ./tools/psocprog/psocprog.exe --version
           ./tools/psocprog/psocprog.exe -b sim:CY8C29466

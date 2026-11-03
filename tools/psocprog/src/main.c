@@ -70,8 +70,21 @@ static ch341_t *open_backend(const char *b, int index)
 #ifdef _WIN32
     ch341_t *d = ch341_open_dll(index);
     if (d) return d;
-#endif
+    d = ch341_open_libusb(index); /* driver WinUSB (Zadig) */
+    if (d) return d;
+    fprintf(stderr,
+        "\npsocprog: no encuentro el CH341A. Revise:\n"
+        "  1. Que este conectado y con el jumper en 1-2 (modo programador, no UART).\n"
+        "  2. Administrador de dispositivos: debe aparecer como \"USB-EPP/I2C... CH341A\"\n"
+        "     (driver CH341PAR de WCH: CH341WDM.INF de la carpeta 'CH341A driver').\n"
+        "     Si aparece como \"USB-SERIAL CH340\" el jumper esta en modo UART.\n"
+        "  3. Si lo usa con AsProgrammer/NeoProgrammer (driver WinUSB de Zadig),\n"
+        "     psocprog tambien funciona: no hace falta cambiar el driver.\n"
+        "  4. Que ningun otro programa (PSoC Programmer CH341A, AsProgrammer...) lo tenga abierto.\n");
+    return NULL;
+#else
     return ch341_open_libusb(index);
+#endif
 }
 
 static void progress(const char *what, int done, int total, int *last)
