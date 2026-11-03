@@ -839,12 +839,19 @@ static int cmd_link(int argc, char **argv)
     expand(cfg("LINK_FLAGS"), flags, sizeof flags);
     if (!*cfg("LINK_LIBS") || strstr(cfg("LINK_LIBS"), "@AUTO@")) auto_libs(libs, sizeof libs);
     else {
-        expand(cfg("LINK_LIBS"), libs, sizeof libs);
-        /* los .asm de lib/ ya se ensamblaron: quitar libpsoc.a para no duplicar simbolos */
-        char vl[MAXP], tok[MAXP];
-        shortp(variant_dir, vl);
-        snprintf(tok, sizeof tok, "%s/lib/libpsoc.a", vl);
-        replace_all(libs, sizeof libs, tok, "");
+        /* token a token: expandir @PSOCDIR@/@VARIANT@ y poner comillas si hace falta;
+         * los .asm de lib/ ya se ensamblaron: se omite libpsoc.a (simbolos duplicados) */
+        char raw[MAXCMD];
+        size_t o = 0;
+        snprintf(raw, sizeof raw, "%s", cfg("LINK_LIBS"));
+        libs[0] = 0;
+        for (char *t = strtok(raw, " "); t; t = strtok(NULL, " ")) {
+            char e[MAXP];
+            if (strstr(t, "lib/libpsoc.a") || strstr(t, "lib/libPSoc.a")) continue;
+            expand(t, e, sizeof e);
+            if (!strncmp(e, "-L", 2)) o += (size_t)snprintf(libs + o, sizeof libs - o, " -L%s", qt(e + 2));
+            else o += (size_t)snprintf(libs + o, sizeof libs - o, " %s", qt(e));
+        }
     }
     FILE *f = fopen(lf, "w");
     if (!f) die("no puedo escribir %s", lf);
@@ -1388,9 +1395,10 @@ static int cmd_import(int argc, char **argv)
 
     char cflags[MAXP];
     snprintf(cflags, sizeof cflags, "%s%s%s", more_cflags, *cdefines ? " " : "", cdefines);
-    if (*lmm && strcmp(lmm, "0")) {
+    /* MORE_CFLAGS ya trae -Wf-LMM2/-Wf-LMM8 -D_LMM en los modelos grandes */
+    {
         size_t n = strlen(cflags);
-        snprintf(cflags + n, sizeof cflags - n, " -Wf-LMM -D__LMM__");
+        while (n && cflags[n - 1] == ' ') cflags[--n] = 0;
     }
 
     snprintf(q, sizeof q, "%s/variant.cfg", vdir);

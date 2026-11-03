@@ -41,7 +41,7 @@ TRIP_VOLTAGE:			equ	7h   ;Trip Voltage value
 TRIP_VOLTAGE_MASK:      equ 7h  ;Trip Voltage mask
 TRIP_VOLTAGE_JUST:      equ 7h  ;Trip Voltage justified
 
-POWER_SETTING:			equ	8h
+POWER_SETTING:			equ	10h
 POWER_SET_5V0:          equ 10h  ; MASK for 5.0V operation, fast and slow 
 POWER_SET_5V0_24MHZ:    equ 10h  ; Power Setting value for 5.0V fast      
 POWER_SET_5V0_6MHZ:     equ 11h  ; Power Setting value for 5.0V slow      

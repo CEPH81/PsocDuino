@@ -4,12 +4,12 @@
 ;;       FILENAME: Memory.inc
 ;;
 ;;    DESCRIPTION: Memory Model and Stack Parameter Definitions for 
-;;                 the CY8C24000 family of PSoC devices.
+;;                 CY8C21030 PSoC devices.
 ;;
-;;  LAST MODIFIED: June 17, 2004
+;;  LAST MODIFIED: August 17, 2004
 ;;
 ;;-----------------------------------------------------------------------------
-;;  Copyright (c) Cypress Semiconductor 2012. All Rights Reserved.
+;;  Copyright (c) Cypress Semiconductor 2015. All Rights Reserved.
 ;;*****************************************************************************
 ;;*****************************************************************************
 ;
@@ -33,8 +33,8 @@ SYSTEM_MULTIPAGE_STACK: equ 0
 ;
 ;  These definitions are used to describe RAM access patterns. They provide
 ;  documentation and they control prologue and epilogue macros that perform
-;  the necessary housekeeping functions for a large memory model device like
-;  the CY8C24000.
+;  the necessary housekeeping functions for large memory model devices like
+;  the CY8C21030.
 
 RAM_USE_CLASS_1:               equ 1   ; PUSH, POP & I/O access
 RAM_USE_CLASS_2:               equ 2   ; Indexed address mode on stack page

@@ -19,9 +19,9 @@
 ;=============================================================================
 ;
 
-CPU_CLOCK:				equ	0h	;CPU clock value
+CPU_CLOCK:				equ	3h	;CPU clock value
 CPU_CLOCK_MASK:			equ	7h	;CPU clock mask
-CPU_CLOCK_JUST:			equ	0h	;CPU clock value justified
+CPU_CLOCK_JUST:			equ	3h	;CPU clock value justified
 SLEEP_TIMER:			equ	0h	;Sleep Timer value
 SLEEP_TIMER_MASK:		equ	18h	;Sleep Timer mask
 SLEEP_TIMER_JUST:		equ	0h	;Sleep Timer value justified

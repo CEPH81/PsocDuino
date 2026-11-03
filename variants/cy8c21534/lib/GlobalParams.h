@@ -20,9 +20,9 @@
 //=============================================================================
 //
 
-#define CPU_CLOCK              0x0     //CPU clock value
+#define CPU_CLOCK              0x3     //CPU clock value
 #define CPU_CLOCK_MASK         0x7     //CPU clock mask
-#define CPU_CLOCK_JUST         0x0     //CPU clock value justified
+#define CPU_CLOCK_JUST         0x3     //CPU clock value justified
 #define SLEEP_TIMER            0x0     //Sleep Timer value
 #define SLEEP_TIMER_MASK       0x18    //Sleep Timer mask
 #define SLEEP_TIMER_JUST       0x0     //Sleep Timer value justified
