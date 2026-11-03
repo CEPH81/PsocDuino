@@ -1,0 +1,142 @@
+# PsocDuino - placas Cypress PSoC 1 (nucleo M8C)
+# Programacion: CH341A + psocprog (ISSP)
+
+menu.vdd=Tension de programacion
+menu.entry=Entrada a programacion
+menu.security=Seguridad de flash
+menu.verify=Verificacion
+
+##############################################################
+# Plantilla comun de menus (se repite en cada placa)
+##############################################################
+
+#----- CY8C24423A ------------------------------------------
+cy8c24423a.name=PSoC 1 CY8C24423A (4K flash, 256 B RAM)
+cy8c24423a.build.mcu=CY8C24423A
+cy8c24423a.build.family=CY8C24x23A
+cy8c24423a.build.board=PSOC_CY8C24423A
+cy8c24423a.build.core=psoc1
+cy8c24423a.build.variant=cy8c24423a
+cy8c24423a.upload.tool=psocprog
+cy8c24423a.upload.tool.default=psocprog
+cy8c24423a.bootloader.tool=psocprog
+cy8c24423a.bootloader.tool.default=psocprog
+cy8c24423a.upload.chip=CY8C24423A
+cy8c24423a.upload.maximum_size=4096
+cy8c24423a.upload.maximum_data_size=256
+
+#----- CY8C27443 -------------------------------------------
+cy8c27443.name=PSoC 1 CY8C27443 (16K flash, 256 B RAM)
+cy8c27443.build.mcu=CY8C27443
+cy8c27443.build.family=CY8C27x43
+cy8c27443.build.board=PSOC_CY8C27443
+cy8c27443.build.core=psoc1
+cy8c27443.build.variant=cy8c27443
+cy8c27443.upload.tool=psocprog
+cy8c27443.upload.tool.default=psocprog
+cy8c27443.bootloader.tool=psocprog
+cy8c27443.bootloader.tool.default=psocprog
+cy8c27443.upload.chip=CY8C27443
+cy8c27443.upload.maximum_size=16384
+cy8c27443.upload.maximum_data_size=256
+
+#----- CY8C29466 -------------------------------------------
+cy8c29466.name=PSoC 1 CY8C29466 (32K flash, 2K RAM)
+cy8c29466.build.mcu=CY8C29466
+cy8c29466.build.family=CY8C29x66
+cy8c29466.build.board=PSOC_CY8C29466
+cy8c29466.build.core=psoc1
+cy8c29466.build.variant=cy8c29466
+cy8c29466.upload.tool=psocprog
+cy8c29466.upload.tool.default=psocprog
+cy8c29466.bootloader.tool=psocprog
+cy8c29466.bootloader.tool.default=psocprog
+cy8c29466.upload.chip=CY8C29466
+cy8c29466.upload.maximum_size=32768
+cy8c29466.upload.maximum_data_size=2048
+
+#----- Cualquier PSoC 1 (deteccion automatica) --------------
+psoc1auto.name=PSoC 1 (detectar chip automaticamente)
+psoc1auto.build.mcu=auto
+psoc1auto.build.family=auto
+psoc1auto.build.board=PSOC_AUTO
+psoc1auto.build.core=psoc1
+psoc1auto.build.variant=cy8c27443
+psoc1auto.upload.tool=psocprog
+psoc1auto.upload.tool.default=psocprog
+psoc1auto.bootloader.tool=psocprog
+psoc1auto.bootloader.tool.default=psocprog
+psoc1auto.upload.chip=auto
+psoc1auto.upload.maximum_size=32768
+psoc1auto.upload.maximum_data_size=256
+
+##############################################################
+# Menus (iguales para todas las placas)
+##############################################################
+cy8c24423a.menu.vdd.v5=5 V
+cy8c24423a.menu.vdd.v5.upload.vdd=5
+cy8c24423a.menu.vdd.v33=3.3 V
+cy8c24423a.menu.vdd.v33.upload.vdd=3.3
+cy8c24423a.menu.entry.xres=XRES (pin de reset)
+cy8c24423a.menu.entry.xres.upload.mode=xres
+cy8c24423a.menu.entry.power=Encendido (D0 controla Vdd)
+cy8c24423a.menu.entry.power.upload.mode=power
+cy8c24423a.menu.security.hex=Segun el .hex
+cy8c24423a.menu.security.hex.upload.secure_flag=
+cy8c24423a.menu.security.none=Sin proteccion (permite releer)
+cy8c24423a.menu.security.none.upload.secure_flag=--no-secure
+cy8c24423a.menu.verify.full=Completa (byte a byte)
+cy8c24423a.menu.verify.full.upload.verify=full
+cy8c24423a.menu.verify.checksum=Rapida (checksum)
+cy8c24423a.menu.verify.checksum.upload.verify=checksum
+
+cy8c27443.menu.vdd.v5=5 V
+cy8c27443.menu.vdd.v5.upload.vdd=5
+cy8c27443.menu.vdd.v33=3.3 V
+cy8c27443.menu.vdd.v33.upload.vdd=3.3
+cy8c27443.menu.entry.xres=XRES (pin de reset)
+cy8c27443.menu.entry.xres.upload.mode=xres
+cy8c27443.menu.entry.power=Encendido (D0 controla Vdd)
+cy8c27443.menu.entry.power.upload.mode=power
+cy8c27443.menu.security.hex=Segun el .hex
+cy8c27443.menu.security.hex.upload.secure_flag=
+cy8c27443.menu.security.none=Sin proteccion (permite releer)
+cy8c27443.menu.security.none.upload.secure_flag=--no-secure
+cy8c27443.menu.verify.full=Completa (byte a byte)
+cy8c27443.menu.verify.full.upload.verify=full
+cy8c27443.menu.verify.checksum=Rapida (checksum)
+cy8c27443.menu.verify.checksum.upload.verify=checksum
+
+cy8c29466.menu.vdd.v5=5 V
+cy8c29466.menu.vdd.v5.upload.vdd=5
+cy8c29466.menu.vdd.v33=3.3 V
+cy8c29466.menu.vdd.v33.upload.vdd=3.3
+cy8c29466.menu.entry.xres=XRES (pin de reset)
+cy8c29466.menu.entry.xres.upload.mode=xres
+cy8c29466.menu.entry.power=Encendido (D0 controla Vdd)
+cy8c29466.menu.entry.power.upload.mode=power
+cy8c29466.menu.security.hex=Segun el .hex
+cy8c29466.menu.security.hex.upload.secure_flag=
+cy8c29466.menu.security.none=Sin proteccion (permite releer)
+cy8c29466.menu.security.none.upload.secure_flag=--no-secure
+cy8c29466.menu.verify.full=Completa (byte a byte)
+cy8c29466.menu.verify.full.upload.verify=full
+cy8c29466.menu.verify.checksum=Rapida (checksum)
+cy8c29466.menu.verify.checksum.upload.verify=checksum
+
+psoc1auto.menu.vdd.v5=5 V
+psoc1auto.menu.vdd.v5.upload.vdd=5
+psoc1auto.menu.vdd.v33=3.3 V
+psoc1auto.menu.vdd.v33.upload.vdd=3.3
+psoc1auto.menu.entry.xres=XRES (pin de reset)
+psoc1auto.menu.entry.xres.upload.mode=xres
+psoc1auto.menu.entry.power=Encendido (D0 controla Vdd)
+psoc1auto.menu.entry.power.upload.mode=power
+psoc1auto.menu.security.hex=Segun el .hex
+psoc1auto.menu.security.hex.upload.secure_flag=
+psoc1auto.menu.security.none=Sin proteccion (permite releer)
+psoc1auto.menu.security.none.upload.secure_flag=--no-secure
+psoc1auto.menu.verify.full=Completa (byte a byte)
+psoc1auto.menu.verify.full.upload.verify=full
+psoc1auto.menu.verify.checksum=Rapida (checksum)
+psoc1auto.menu.verify.checksum.upload.verify=checksum

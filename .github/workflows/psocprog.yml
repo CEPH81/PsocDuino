@@ -1,0 +1,62 @@
+name: psocprog
+
+on:
+  push:
+    paths: ['tools/psocprog/**', '.github/workflows/psocprog.yml']
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev
+      - name: Tests (simulador)
+        working-directory: tools/psocprog
+        run: make test
+      - name: Build
+        working-directory: tools/psocprog
+        run: |
+          make -B USB_LIBS="-Wl,-Bstatic $(pkg-config --variable=libdir libusb-1.0)/libusb-1.0.a -Wl,-Bdynamic -ludev -lpthread"
+          ./psocprog --version
+      - uses: actions/upload-artifact@v4
+        with: { name: psocprog-linux-x86_64, path: tools/psocprog/psocprog }
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install libusb
+      - name: Tests + build
+        working-directory: tools/psocprog
+        run: |
+          make test
+          make -B USB_LIBS="$(brew --prefix libusb)/lib/libusb-1.0.a -framework IOKit -framework CoreFoundation -framework Security"
+          ./psocprog --version
+      - uses: actions/upload-artifact@v4
+        with: { name: psocprog-macos-arm64, path: tools/psocprog/psocprog }
+
+  windows:
+    runs-on: windows-latest
+    defaults: { run: { shell: msys2 {0} } }
+    strategy:
+      matrix:
+        include:
+          - { sys: mingw32, name: windows-x86 }   # carga CH341DLL.DLL (32 bits)
+          - { sys: mingw64, name: windows-x64 }   # carga CH341DLLA64.DLL
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with: { msystem: '${{ matrix.sys }}', install: make, pacboy: gcc:p }
+      - name: Build (backend DLL, sin libusb)
+        working-directory: tools/psocprog
+        run: |
+          make CC=gcc NO_LIBUSB=1 CFLAGS="-O2 -static" psocprog
+          mv psocprog psocprog.exe 2>/dev/null || true
+          ./psocprog.exe --version
+          ./psocprog.exe -b sim:CY8C29466
+      - uses: actions/upload-artifact@v4
+        with: { name: 'psocprog-${{ matrix.name }}', path: tools/psocprog/psocprog.exe }

@@ -1,0 +1,49 @@
+# PsocDuino - Arduino core para Cypress PSoC 1 (M8C)
+# https://github.com/CEPH81/PsocDuino
+
+name=PsocDuino (Cypress PSoC 1)
+version=0.1.0
+
+# ---------------------------------------------------------------------------
+# Compilador ImageCraft M8C (incluido en PSoC Designer 5.4, solo Windows).
+# FASE 2 - PENDIENTE: las lineas de compilacion se ajustaran con el log real
+# de PSoC Designer (proyecto de referencia por chip). Ver docs/ROADMAP.md.
+# ---------------------------------------------------------------------------
+compiler.path.windows=C:/Program Files (x86)/Cypress/Common/CypressSemiBuildMgr/tools/
+compiler.path=
+compiler.c.cmd=iccm8c.exe
+compiler.asm.cmd=iasm8c.exe
+compiler.ld.cmd=ilinkm8c.exe
+compiler.c.flags=-c -e -D__M8C__
+compiler.asm.flags=
+compiler.ld.flags=
+compiler.c.extra_flags=
+build.extra_flags=-D{build.board} -DPSOC_MCU_{build.mcu}
+
+recipe.c.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.c.flags} {build.extra_flags} {compiler.c.extra_flags} {includes} -o "{object_file}" "{source_file}"
+recipe.S.o.pattern="{compiler.path}{compiler.asm.cmd}" {compiler.asm.flags} {includes} -o "{object_file}" "{source_file}"
+recipe.c.combine.pattern="{compiler.path}{compiler.ld.cmd}" {compiler.ld.flags} -o "{build.path}/{build.project_name}.hex" {object_files}
+recipe.size.pattern=
+recipe.size.regex=
+
+# ---------------------------------------------------------------------------
+# Programador: psocprog + CH341A (probado; ver tools/psocprog)
+# ---------------------------------------------------------------------------
+tools.psocprog.path={runtime.platform.path}/tools/bin
+tools.psocprog.path.windows={runtime.platform.path}/tools/bin/windows
+tools.psocprog.path.linux={runtime.platform.path}/tools/bin/linux
+tools.psocprog.path.macosx={runtime.platform.path}/tools/bin/macos
+tools.psocprog.cmd=psocprog
+tools.psocprog.cmd.windows=psocprog.exe
+
+tools.psocprog.upload.params.verbose=-v
+tools.psocprog.upload.params.quiet=
+tools.psocprog.upload.pattern="{path}/{cmd}" {upload.verbose} -c {upload.chip} -m {upload.mode} -V {upload.vdd} --verify {upload.verify} {upload.secure_flag} --run -w "{build.path}/{build.project_name}.hex"
+
+# "Quemar bootloader" = borrar el chip completo (quita tambien la proteccion)
+tools.psocprog.erase.params.verbose=-v
+tools.psocprog.erase.params.quiet=
+tools.psocprog.erase.pattern="{path}/{cmd}" {erase.verbose} -c {upload.chip} -m {upload.mode} -V {upload.vdd} -e
+tools.psocprog.bootloader.params.verbose=-v
+tools.psocprog.bootloader.params.quiet=
+tools.psocprog.bootloader.pattern="{path}/{cmd}" {bootloader.verbose} -c {upload.chip} -m {upload.mode} -V {upload.vdd} -i

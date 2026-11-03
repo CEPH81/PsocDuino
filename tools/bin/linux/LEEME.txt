@@ -1,0 +1,1 @@
+Coloque aqui el binario psocprog de linux (artefacto de GitHub Actions).

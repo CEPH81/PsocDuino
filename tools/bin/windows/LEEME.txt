@@ -1,0 +1,2 @@
+Coloque aqui el binario psocprog de windows (artefacto de GitHub Actions).
+En Windows copie tambien CH341DLL.DLL (32 bits) o CH341DLLA64.DLL (64 bits) del paquete CH341PAR de WCH.

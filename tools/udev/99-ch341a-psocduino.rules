@@ -1,0 +1,3 @@
+# CH341A (1a86:5512) accesible sin root para psocprog
+# sudo cp 99-ch341a-psocduino.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="5512", MODE="0666", TAG+="uaccess"
