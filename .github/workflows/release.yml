@@ -1,0 +1,53 @@
+name: release
+
+# Empuje una etiqueta vX.Y.Z para publicar una version en el Gestor de placas.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    uses: ./.github/workflows/psocprog.yml
+
+  paquete:
+    needs: compilar
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/download-artifact@v4
+        with: { path: art }
+      - name: Binarios recien compilados
+        run: |
+          cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
+          mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
+          cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
+          cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
+      - name: Empaquetar y publicar el Release
+        run: |
+          python3 tools/packaging/make_release.py "$TAG" --out dist
+          V="${TAG#v}"
+          cat > notes.md <<EOT
+          PsocDuino $V para el Gestor de placas del Arduino IDE 2.x.
+
+          URL para *Preferencias -> URLs adicionales de gestor de placas*:
+
+              https://raw.githubusercontent.com/CEPH81/PsocDuino/main/package_psocduino_index.json
+
+          Guia: docs/instalacion.md
+          EOT
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PsocDuino $V" --notes-file notes.md
+          gh release upload "$TAG" dist/*.tar.bz2 --clobber
+      - name: Actualizar el indice en main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package_psocduino_index.json tools/bin
+          git commit -m "Gestor de placas: PsocDuino $TAG [skip ci]" || exit 0
+          git push
