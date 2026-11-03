@@ -314,6 +314,187 @@
             }
           ],
           "toolsDependencies": []
+        },
+        {
+          "name": "PsocDuino (Cypress PSoC 1)",
+          "architecture": "m8c",
+          "version": "0.4.1",
+          "category": "Contributed",
+          "help": {
+            "online": "https://github.com/CEPH81/PsocDuino"
+          },
+          "url": "https://github.com/CEPH81/PsocDuino/releases/download/v0.4.1/psocduino-m8c-0.4.1.tar.bz2",
+          "archiveFileName": "psocduino-m8c-0.4.1.tar.bz2",
+          "checksum": "SHA-256:e91e1ebf281e996deb9736c85a2532c6827834eeebdead1214bd141912ee9e24",
+          "size": "461012",
+          "boards": [
+            {
+              "name": "PSoC 1 CY8C21234"
+            },
+            {
+              "name": "PSoC 1 CY8C21534"
+            },
+            {
+              "name": "PSoC 1 CY8C24223A"
+            },
+            {
+              "name": "PSoC 1 CY8C24423A"
+            },
+            {
+              "name": "PSoC 1 CY8C27243"
+            },
+            {
+              "name": "PSoC 1 CY8C27443"
+            },
+            {
+              "name": "PSoC 1 CY8C29466"
+            },
+            {
+              "name": "PSoC 1"
+            },
+            {
+              "name": "PSoC 1 CY8C21334"
+            },
+            {
+              "name": "PSoC 1 CY8C21434"
+            },
+            {
+              "name": "PSoC 1 CY8C21634"
+            },
+            {
+              "name": "PSoC 1 CY8C24123A"
+            },
+            {
+              "name": "PSoC 1 CY8C27143"
+            },
+            {
+              "name": "PSoC 1 CY8C27543"
+            },
+            {
+              "name": "PSoC 1 CY8C27643"
+            },
+            {
+              "name": "PSoC 1 CY8C29566"
+            },
+            {
+              "name": "PSoC 1 CY8C29666"
+            },
+            {
+              "name": "PSoC 1 CY8C29866"
+            },
+            {
+              "name": "PSoC 1 CY8C21123"
+            },
+            {
+              "name": "PSoC 1 CY8C21223"
+            },
+            {
+              "name": "PSoC 1 CY8C21323"
+            },
+            {
+              "name": "PSoC 1 CY8C21312"
+            },
+            {
+              "name": "PSoC 1 CY8C21512"
+            },
+            {
+              "name": "PSoC 1 CY8C21345"
+            },
+            {
+              "name": "PSoC 1 CY8C21645-12xxXE"
+            },
+            {
+              "name": "PSoC 1 CY8C21645-24xxXA"
+            },
+            {
+              "name": "PSoC 1 CY8C22113"
+            },
+            {
+              "name": "PSoC 1 CY8C22213"
+            },
+            {
+              "name": "PSoC 1 CY8C22345"
+            },
+            {
+              "name": "PSoC 1 CY8C223451-24xxXA"
+            },
+            {
+              "name": "PSoC 1 CY8C22545-24xxXI"
+            },
+            {
+              "name": "PSoC 1 CY8C22645-12xxXE"
+            },
+            {
+              "name": "PSoC 1 CY8C22645-24xxXA"
+            },
+            {
+              "name": "PSoC 1 CY8C23033"
+            },
+            {
+              "name": "PSoC 1 CY8C23433"
+            },
+            {
+              "name": "PSoC 1 CY8C23533"
+            },
+            {
+              "name": "PSoC 1 CY8C24123"
+            },
+            {
+              "name": "PSoC 1 CY8C24223"
+            },
+            {
+              "name": "PSoC 1 CY8C24423"
+            },
+            {
+              "name": "PSoC 1 CY8C24794"
+            },
+            {
+              "name": "PSoC 1 CY8C24894"
+            },
+            {
+              "name": "PSoC 1 CY8C24994"
+            },
+            {
+              "name": "PSoC 1 CY8C28000"
+            },
+            {
+              "name": "PSoC 1 CY8C28243"
+            },
+            {
+              "name": "PSoC 1 CY8C28403"
+            },
+            {
+              "name": "PSoC 1 CY8C28413"
+            },
+            {
+              "name": "PSoC 1 CY8C28433"
+            },
+            {
+              "name": "PSoC 1 CY8C28445"
+            },
+            {
+              "name": "PSoC 1 CY8C28452"
+            },
+            {
+              "name": "PSoC 1 CY8C28513"
+            },
+            {
+              "name": "PSoC 1 CY8C28533"
+            },
+            {
+              "name": "PSoC 1 CY8C28545"
+            },
+            {
+              "name": "PSoC 1 CY8C28623"
+            },
+            {
+              "name": "PSoC 1 CY8C28643"
+            },
+            {
+              "name": "PSoC 1 CY8C28645"
+            }
+          ],
+          "toolsDependencies": []
         }
       ],
       "tools": []
