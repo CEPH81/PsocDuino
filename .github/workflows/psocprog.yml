@@ -87,6 +87,7 @@ jobs:
 
   # Copia los binarios a tools/bin/ del repositorio (para instalar sin entrar a Actions)
   publicar:
+    concurrency: { group: publicar-binarios, cancel-in-progress: false }
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.workflow == 'herramientas'
     needs: [linux, macos, windows]
     runs-on: ubuntu-latest
@@ -97,19 +98,20 @@ jobs:
       - name: Copiar a tools/bin y hacer commit
         run: |
           set -e
-          cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
-          mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
-          cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
-          cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tools/bin
-          if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
-          git commit -m "Binarios de psocprog/psocbuild compilados por CI [skip ci]"
           ok=0
           for i in 1 2 3 4 5; do
-            if git pull --rebase origin main && git push; then ok=1; break; fi
+            # siempre sobre el main mas reciente: sin rebase ni conflictos de binarios
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
+            mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
+            cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
+            cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
+            git add tools/bin
+            if git diff --cached --quiet; then echo "sin cambios"; ok=1; break; fi
+            git commit -q -m "Binarios de psocprog/psocbuild compilados por CI [skip ci]"
+            if git push origin HEAD:main; then ok=1; break; fi
             sleep 15
           done
           [ "$ok" = 1 ] || { echo "no se pudieron subir los binarios"; exit 1; }
-

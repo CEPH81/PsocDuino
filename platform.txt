@@ -3,7 +3,7 @@
 
 name=PsocDuino (Cypress PSoC 1)
 # Publicar en el Gestor de placas: cambie la version y haga push a main (release.yml)
-version=0.4.4
+version=0.4.5
 
 # ---------------------------------------------------------------------------
 # Compilacion: ImageCraft ICCM8C de PSoC Designer 5.x (solo Windows), a traves
