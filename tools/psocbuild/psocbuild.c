@@ -856,23 +856,35 @@ static int cmd_link(int argc, char **argv)
         snprintf(p2, sizeof p2, "%s/%s", bdir, copies[i]);
         if (copy_file(p1, p2)) die("falta %s en la variante", p1);
     }
-    /* LMM: el enlazador pone 'xidata' (valores iniciales de las variables)
-     * despues de la ultima area de ROM, que con PsocDuino no es 'text':
-     * __text_end no sirve. El puntero debe ir a __xidata_start (lo pide el
-     * aviso "__xidata_start label not found in startup file"). */
+    /* Orden de las areas como en PSoC Designer. ilinkm8c lee crtM8C.o (boot.o)
+     * despues de los objetos del linkfile, asi que el orden lo daria el primer
+     * objeto (text quedaria primero). psocduino_areas.asm repite las
+     * declaraciones "Order Critical" de boot.asm y va primero: text queda al
+     * final de la ROM, como espera boot.asm (__pXIData = __text_end, que debe
+     * coincidir con __xidata_start: valores iniciales de las variables en LMM). */
     {
         long bl;
         snprintf(p2, sizeof p2, "%s/boot.asm", bdir);
         char *bt = read_file(p2, &bl);
-        char *w = bt ? strstr(bt, "word __text_end") : NULL;
-        if (w) {
-            size_t cap = (size_t)bl + 64;
-            char *nb = malloc(cap);
-            if (!nb) die("memoria");
-            snprintf(nb, cap, "%.*sword __xidata_start%s", (int)(w - bt), bt, w + strlen("word __text_end"));
-            write_file(p2, nb, (long)strlen(nb));
-            free(nb);
+        if (!bt) die("falta %s", p2);
+        char *sec = strstr(bt, "Order Critical");
+        FILE *af;
+        snprintf(p1, sizeof p1, "%s/psocduino_areas.asm", bdir);
+        af = fopen(p1, "w");
+        if (!af) die("no puedo escribir %s", p1);
+        fprintf(af, "; generado por psocduino: orden de areas de boot.asm (PSoC Designer)\n");
+        for (char *l = sec ? sec : bt; l && *l;) {
+            char *e = strchr(l, '\n');
+            size_t n = e ? (size_t)(e - l) : strlen(l);
+            char *q = l;
+            while (q < l + n && (*q == ' ' || *q == '\t')) q++;
+            if (!strncasecmp(q, "AREA", 4) && (q[4] == ' ' || q[4] == '\t') && !strstr(q, "ABS")) {
+                char *c = memchr(q, ';', (size_t)(l + n - q));
+                fprintf(af, "    %.*s\n", (int)((c ? c : l + n) - q), q);
+            }
+            l = e ? e + 1 : NULL;
         }
+        fclose(af);
         free(bt);
     }
     snprintf(p1, sizeof p1, "%s/lib/GlobalParams.inc", variant_dir);
@@ -916,6 +928,7 @@ static int cmd_link(int argc, char **argv)
         char srcs[65][MAXP];
         int ns = 0;
         snprintf(srcs[ns++], MAXP, "boot.asm");
+        snprintf(srcs[ns++], MAXP, "psocduino_areas.asm");
         for (int i = 0; i < nf && ns < 65; i++)
             if (!strcasecmp(ext(names[i]), ".asm")) snprintf(srcs[ns++], MAXP, "%s/%s", vlib, names[i]);
         if (!getcwd(cwd, sizeof cwd)) die("getcwd");
@@ -931,7 +944,7 @@ static int cmd_link(int argc, char **argv)
               size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -I%s -I%s", qt(pl), qt(pbl)); }
             std_includes(cmd);
             shortp(obj, so);
-            if (i == 0) snprintf(ss, sizeof ss, "boot.asm"); else shortp(srcs[i], ss);
+            if (i < 2) snprintf(ss, sizeof ss, "%s", srcs[i]); else shortp(srcs[i], ss);
             { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s %s", qt(so), qt(ss)); }
             if (chdir(bdir)) die("no puedo entrar en %s", bdir);
             r = run(cmd, cap2);
@@ -1001,7 +1014,7 @@ static int cmd_link(int argc, char **argv)
     r = run(cmd, cap);
     /* "symbol X is unused" es informativo */
     char *b = read_file(cap, NULL);
-    int errs = 0, full = 0;
+    int errs = 0, full = 0, shown = 0;
     if (b) {
         for (char *line = strtok(b, "\n"); line; line = strtok(NULL, "\n")) {
             if (strstr(line, "is unused") && !verbose) continue;
@@ -1010,6 +1023,7 @@ static int cmd_link(int argc, char **argv)
             if (strstr(line, "not large enough")) full = 1;
             if (line[0] == '!' && line[1] == 'E') errs++;
             fprintf(stderr, "%s\n", line);
+            shown++;
         }
         free(b);
     }
@@ -1019,6 +1033,8 @@ static int cmd_link(int argc, char **argv)
     if (r || errs || !exists(hex)) {
         char mp[MAXP], mpo[MAXP];
         fprintf(stderr, "psocbuild: el enlace fallo%s\n", exists(hex) ? "" : " (no se genero el .hex)");
+        if (!shown)
+            fprintf(stderr, "psocbuild: ilinkm8c termino con codigo %d sin mensajes; linkfile: %s\n", r, lf);
         if (full)
             fprintf(stderr, "psocbuild: 'area not large enough' = el programa no cabe en la flash/RAM de este chip "
                             "(LASTROM %s, LASTRAM %s).\n", cfg("LASTROM"), cfg("LASTRAM"));
