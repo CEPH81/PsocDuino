@@ -2,10 +2,9 @@
 """Genera boards.txt de PsocDuino.
 
 - Una placa por cada chip con variante incluida (como en las versiones 0.3.x).
-- Una placa "PSoC 1 (todos los modelos)" con el menu Microcontrolador, que lista
-  todos los PSoC 1 que reconoce psocprog. Los chips del mismo silicio usan la
-  variante incluida de su familia; los demas usan una variante con su nombre,
-  que se importa una vez con importar_variante.bat.
+- Una placa "PSoC 1 (todos los modelos)" con el menu Microcontrolador para
+  cambiar de chip sin salir de la placa (solo los de MENU_CHIPS).
+  CHIPS guarda los datos de todos los PSoC 1 de psocprog para agregar mas.
 """
 import os
 
@@ -83,6 +82,8 @@ CHIPS = [
 ]
 
 # Placas individuales (las de siempre): chip con variante propia incluida
+# Menu Microcontrolador: solo los chips con variante incluida, en este orden
+MENU_CHIPS = ['CY8C24423A', 'CY8C24223A', 'CY8C27443', 'CY8C27243', 'CY8C29466', 'CY8C21534', 'CY8C21234']
 BOARDS = ['CY8C21234', 'CY8C21534', 'CY8C24223A', 'CY8C24423A', 'CY8C27243', 'CY8C27443', 'CY8C29466']
 
 MENUS = [
@@ -167,18 +168,18 @@ def main():
     L.append('# Todos los PSoC 1: el chip se elige en Herramientas -> Microcontrolador')
     L.append('%s.name=PSoC 1 (todos los modelos)' % b)
     common(L, b)
-    # primero los que compilan sin importar nada
-    order = [c for c in CHIPS if c[4] in INCLUDED] + [c for c in CHIPS if c[4] not in INCLUDED]
-    for c in order:
+    L.append('%s.build.board=PSOC1' % b)
+    # solo los chips con variante propia (proyectos de PSoC Designer de Carlos)
+    for n in MENU_CHIPS:
+        c = bychip[n]
         oid = c[0].lower().replace('-', '_')
-        extra = '' if c[4] in INCLUDED else ', importar variante'
-        L.append('%s.menu.chip.%s=%s (%dK flash, %s RAM, %s%s)' % (b, oid, c[0], c[1], ram_txt(c[2]), c[3], extra))
+        L.append('%s.menu.chip.%s=%s (%dK flash, %s RAM, %s)' % (b, oid, c[0], c[1], ram_txt(c[2]), c[3]))
         for k, v in chip_props(c):
             L.append('%s.menu.chip.%s.%s=%s' % (b, oid, k, v))
     menus(L, b)
     L.append('')
     open(os.path.join(ROOT, 'boards.txt'), 'w').write('\n'.join(L))
-    print('boards.txt: %d placas + %d microcontroladores en el menu' % (len(BOARDS) + 1, len(CHIPS)))
+    print('boards.txt: %d placas + %d microcontroladores en el menu' % (len(BOARDS) + 1, len(MENU_CHIPS)))
 
 
 if __name__ == '__main__':

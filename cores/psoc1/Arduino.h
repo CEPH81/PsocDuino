@@ -161,7 +161,17 @@ void psocduino_init(void);
 #ifndef PSOCDUINO_HOST_TEST
 #pragma fastcall16 psocduino_spin9
 #pragma fastcall16 psocduino_measure_tick
+#pragma fastcall16 psocduino_reg_rd
+#pragma fastcall16 psocduino_reg1_rd
+#pragma fastcall16 psocduino_reg_wr
+#pragma fastcall16 psocduino_reg1_wr
 #endif
 void psocduino_spin9(uint8_t n);            /* espera exacta de 9*n ciclos de CPU */
 unsigned int psocduino_measure_tick(void);  /* iteraciones de 23 ciclos por tic */
+uint8_t psocduino_reg_rd(uint8_t addr);     /* registro del banco 0 */
+uint8_t psocduino_reg1_rd(uint8_t addr);    /* registro del banco 1 */
+void psocduino_reg_wr(unsigned int av);     /* (direccion << 8) | valor, banco 0 */
+void psocduino_reg1_wr(unsigned int av);    /* banco 1 */
+#define PSD_WR(a, v)  psocduino_reg_wr((unsigned int)(((unsigned int)(a) << 8) | (uint8_t)(v)))
+#define PSD_WR1(a, v) psocduino_reg1_wr((unsigned int)(((unsigned int)(a) << 8) | (uint8_t)(v)))
 #endif

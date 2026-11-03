@@ -50,3 +50,45 @@ psd_cal_loop:
 psd_cal_done:
     and   reg[0DAh], BFh
     ret
+
+;-----------------------------------------------------------------------------
+; Acceso indexado a registros (reemplaza los switch por puerto: mucho menos flash)
+;   BYTE psocduino_reg_rd(BYTE addr)      banco 0, direccion en A
+;   BYTE psocduino_reg1_rd(BYTE addr)     banco 1
+;   void psocduino_reg_wr(WORD av)        X = direccion (MSB), A = valor (LSB)
+;   void psocduino_reg1_wr(WORD av)       banco 1
+;-----------------------------------------------------------------------------
+export  _psocduino_reg_rd
+export   psocduino_reg_rd
+export  _psocduino_reg1_rd
+export   psocduino_reg1_rd
+export  _psocduino_reg_wr
+export   psocduino_reg_wr
+export  _psocduino_reg1_wr
+export   psocduino_reg1_wr
+
+ psocduino_reg_rd:
+_psocduino_reg_rd:
+    mov   X, A
+    mov   A, reg[X+0]
+    ret
+
+ psocduino_reg1_rd:
+_psocduino_reg1_rd:
+    mov   X, A
+    or    F, 10h
+    mov   A, reg[X+0]
+    and   F, EFh
+    ret
+
+ psocduino_reg_wr:
+_psocduino_reg_wr:
+    mov   reg[X+0], A
+    ret
+
+ psocduino_reg1_wr:
+_psocduino_reg1_wr:
+    or    F, 10h
+    mov   reg[X+0], A
+    and   F, EFh
+    ret

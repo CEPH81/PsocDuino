@@ -22,10 +22,10 @@ jobs:
       - name: Prueba del nucleo (C89)
         run: |
           gcc -std=c89 -pedantic -Wall -Werror -Wno-unused-parameter -DPSOCDUINO_HOST_TEST -Icores/psoc1 \
-            -o core_test tests/core_host_test.c cores/psoc1/wiring_digital.c cores/psoc1/wiring.c
+            -o core_test tests/core_host_test.c cores/psoc1/wiring*.c
           ./core_test
           gcc -std=c89 -pedantic -Wall -Werror -Wno-unused-parameter -DPSOCDUINO_HOST_TEST -DPSOC_NUM_PORTS=8 -Icores/psoc1 \
-            -o core_test8 tests/core_host_test.c cores/psoc1/wiring_digital.c cores/psoc1/wiring.c
+            -o core_test8 tests/core_host_test.c cores/psoc1/wiring*.c
           ./core_test8
       - name: Build
         run: |

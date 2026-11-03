@@ -4,7 +4,9 @@
  *   32 kHz).  El ILO tiene mucha tolerancia (15..64 kHz segun la hoja de
  *   datos), asi que al arrancar se mide contra el reloj de CPU (IMO, +-2.5%)
  *   y se calcula cuantos microsegundos vale cada tic.
- * delay()/delayMicroseconds(): bucles de ciclos exactos sobre el IMO.
+ * delay()/delayMicroseconds(): bucles de ciclos sobre el IMO.
+ * Todo en 16 bits (salvo el contador de ms): el M8C no tiene multiplicador
+ * de 32 bits y esas rutinas ocupan mucha flash en los chips de 4 KB.
  *
  * Ciclos M8C: dec A = 4, jnz = 5, inc A = 4, jnc = 5, jmp = 5,
  *             tst reg[expr],expr = 9.
@@ -14,6 +16,21 @@
 /* ciclos de llamada a psocduino_spin9() + calculo del bucle (calibrable) */
 #ifndef PSOCDUINO_CALL_CYCLES
 #define PSOCDUINO_CALL_CYCLES 60
+#endif
+/* ciclos de una vuelta del bucle de bloques de delayMicroseconds() */
+#ifndef PSOCDUINO_LOOP_CYCLES
+#define PSOCDUINO_LOOP_CYCLES 40
+#endif
+
+/* ciclos de CPU por cada medio microsegundo: 48, 24, 12, 6 o 3 */
+#define PSD_HALF_US ((unsigned int)(F_CPU / 500000UL))
+/* delayMicroseconds() espera en bloques de 32 us */
+#define PSD_BLOCK_US 32
+#define PSD_BLOCK_CYC (PSD_BLOCK_US * F_CPU / 1000000UL)
+#if PSD_BLOCK_CYC > PSOCDUINO_LOOP_CYCLES + PSOCDUINO_CALL_CYCLES
+#define PSD_BLOCK_N ((uint8_t)((PSD_BLOCK_CYC - PSOCDUINO_LOOP_CYCLES - PSOCDUINO_CALL_CYCLES) / 9))
+#else
+#define PSD_BLOCK_N 0
 #endif
 
 void psocduino_gpio_init(void);
@@ -42,8 +59,7 @@ void psocduino_sleep_isr(void)
 
 void psocduino_init(void)
 {
-    unsigned long cycles;
-    unsigned int n;
+    unsigned int n, us;
 
     PSD_GIE_OFF();
     psocduino_gpio_init();
@@ -54,10 +70,12 @@ void psocduino_init(void)
     PSD_BANK0();
     PSD_INT_MSK0 = (uint8_t)(PSD_INT_MSK0 | PSD_INT_SLEEP);
 
+    /* un tic = n * 23 ciclos (+9 cada 256); en us = ciclos * 2 / PSD_HALF_US,
+     * calculado en 16 bits sin desbordar */
     n = psocduino_measure_tick();
-    cycles = (unsigned long)n * 23UL + (unsigned long)(n >> 8) * 9UL;
-    if (cycles > 1000UL) /* cycles * 1e6 / F_CPU sin desbordar */
-        us_per_tick = (unsigned int)((cycles * 1000UL) / (F_CPU / 1000UL));
+    us = (n / PSD_HALF_US) * 46U + ((n % PSD_HALF_US) * 46U) / PSD_HALF_US
+         + ((n >> 8) * 18U) / PSD_HALF_US;
+    if (us > 100) us_per_tick = us;
 
     ms_count = 0;
     us_acc = 0;
@@ -73,56 +91,33 @@ unsigned long millis(void)
     return m;
 }
 
-unsigned long micros(void)
-{
-    unsigned long m;
-    unsigned int u;
-    PSD_GIE_OFF();
-    m = ms_count;
-    u = us_acc;
-    PSD_GIE_ON();
-    return m * 1000UL + u; /* resolucion = un tic (~2 ms) */
-}
-
 void delayMicroseconds(unsigned int us)
 {
-    unsigned long cycles = (unsigned long)us * (F_CPU / 1000000UL);
-    const unsigned long chunk = 255UL * 9UL + PSOCDUINO_CALL_CYCLES;
-    while (cycles > chunk) {
-        psocduino_spin9(255);
-        cycles -= chunk;
+    unsigned int cycles;
+    while (us > PSD_BLOCK_US) {
+        psocduino_spin9(PSD_BLOCK_N);
+        us -= PSD_BLOCK_US;
     }
+    cycles = (us * PSD_HALF_US) >> 1; /* us <= 32: sin desborde */
     if (cycles > PSOCDUINO_CALL_CYCLES + 9)
         psocduino_spin9((uint8_t)((cycles - PSOCDUINO_CALL_CYCLES) / 9));
 }
 
 void delay(unsigned long ms)
 {
-    while (ms--) delayMicroseconds(1000);
+    while (ms) {
+        delayMicroseconds(1000);
+        ms--;
+    }
 }
 
-long map(long x, long in_min, long in_max, long out_min, long out_max)
+/* para micros() (wiring_micros.c): ms y us acumulados leidos juntos */
+unsigned long psocduino_micros_parts(unsigned int *us)
 {
-    if (in_max == in_min) return out_min;
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-static unsigned long rnd_state = 1;
-
-void randomSeed(unsigned long seed)
-{
-    if (seed) rnd_state = seed;
-}
-
-long random(long howbig)
-{
-    if (howbig <= 0) return 0;
-    rnd_state = rnd_state * 1103515245UL + 12345UL;
-    return (long)((rnd_state >> 8) % (unsigned long)howbig);
-}
-
-long randomRange(long howsmall, long howbig)
-{
-    if (howsmall >= howbig) return howsmall;
-    return random(howbig - howsmall) + howsmall;
+    unsigned long m;
+    PSD_GIE_OFF();
+    m = ms_count;
+    *us = us_acc;
+    PSD_GIE_ON();
+    return m;
 }

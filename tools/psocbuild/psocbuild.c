@@ -973,10 +973,11 @@ static int cmd_link(int argc, char **argv)
     r = run(cmd, cap);
     /* "symbol X is unused" es informativo */
     char *b = read_file(cap, NULL);
-    int errs = 0;
+    int errs = 0, full = 0;
     if (b) {
         for (char *line = strtok(b, "\n"); line; line = strtok(NULL, "\n")) {
             if (strstr(line, "is unused") && !verbose) continue;
+            if (strstr(line, "not large enough")) full = 1;
             if (line[0] == '!' && line[1] == 'E') errs++;
             fprintf(stderr, "%s\n", line);
         }
@@ -986,7 +987,14 @@ static int cmd_link(int argc, char **argv)
     char hex[MAXP];
     snprintf(hex, sizeof hex, "%s.hex", fw);
     if (r || errs || !exists(hex)) {
+        char mp[MAXP], mpo[MAXP];
         fprintf(stderr, "psocbuild: el enlace fallo%s\n", exists(hex) ? "" : " (no se genero el .hex)");
+        if (full)
+            fprintf(stderr, "psocbuild: 'area not large enough' = el programa no cabe en la flash/RAM de este chip "
+                            "(LASTROM %s, LASTRAM %s).\n", cfg("LASTROM"), cfg("LASTRAM"));
+        snprintf(mp, sizeof mp, "%s.mp", fw);
+        snprintf(mpo, sizeof mpo, "%s.mp", outbase);
+        if (exists(mp) && !copy_file(mp, mpo)) fprintf(stderr, "psocbuild: mapa de memoria: %s\n", mpo);
         return 1;
     }
     const char *exts[] = { ".hex", ".mp", ".lst", ".rom", ".dbg" };
