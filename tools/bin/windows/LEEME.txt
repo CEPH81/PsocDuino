@@ -1,2 +1,3 @@
-Coloque aqui el binario psocprog de windows (artefacto de GitHub Actions).
-En Windows copie tambien CH341DLL.DLL (32 bits) o CH341DLLA64.DLL (64 bits) del paquete CH341PAR de WCH.
+psocprog.exe y psocbuild.exe (32 bits) los copia aqui GitHub Actions automaticamente.
+CH341DLL.DLL (32 bits, WCH) es la del paquete del programa original; el driver
+CH341PAR/CH341WDM debe estar instalado (CH341A driver\CH341_EPP_MEM_I2C_IO\CH341WDM.INF).

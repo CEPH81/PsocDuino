@@ -8,6 +8,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   linux:
     runs-on: ubuntu-22.04
@@ -72,3 +75,26 @@ jobs:
           mkdir -p dist && cp tools/psocprog/psocprog.exe tools/psocbuild/psocbuild.exe dist/
       - uses: actions/upload-artifact@v4
         with: { name: 'psocduino-tools-${{ matrix.name }}', path: dist/ }
+
+  # Copia los binarios a tools/bin/ del repositorio (para instalar sin entrar a Actions)
+  publicar:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: art }
+      - name: Copiar a tools/bin y hacer commit
+        run: |
+          set -e
+          cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
+          mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
+          cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
+          cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/bin
+          if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
+          git commit -m "Binarios de psocprog/psocbuild compilados por CI [skip ci]"
+          git push
