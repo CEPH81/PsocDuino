@@ -499,6 +499,87 @@ static int show_output(const char *capfile, const char *tmpname, const char *ori
 }
 
 /* --------------------------------------------------------------- cc/as */
+static int is_ident(int c) { return isalnum(c) || c == '_'; }
+
+/* Si la linea (a nivel superior) es "tipo nombre()" seguida de '{', ';' o fin,
+ * devuelve el puntero al '(' de la lista vacia; si no, NULL. */
+static char *empty_proto(char *l)
+{
+    static const char *kw[] = { "return", "if", "while", "for", "switch", "sizeof", "do", "else", "case", "goto", 0 };
+    char *p = l, *paren = NULL;
+    int words = 0;
+    while (*p == ' ' || *p == '\t') p++;
+    if (*p == '#' || !*p) return NULL;
+    for (;;) {
+        while (*p == ' ' || *p == '\t' || *p == '*') p++;
+        if (!is_ident((unsigned char)*p) || isdigit((unsigned char)*p)) break;
+        char *w = p;
+        while (is_ident((unsigned char)*p)) p++;
+        for (int k = 0; kw[k]; k++)
+            if ((size_t)(p - w) == strlen(kw[k]) && !strncmp(w, kw[k], (size_t)(p - w))) return NULL;
+        words++;
+    }
+    if (words < 2 || *p != '(') return NULL;
+    paren = p++;
+    while (*p == ' ' || *p == '\t') p++;
+    if (*p != ')') return NULL;
+    p++;
+    while (*p == ' ' || *p == '\t' || *p == '\r') p++;
+    if (*p && *p != '{' && *p != ';' && strncmp(p, "//", 2) && strncmp(p, "/*", 2)) return NULL;
+    return paren;
+}
+
+/* Copia el sketch a .c escribiendo "(void)" en las declaraciones y definiciones
+ * de funciones sin parametros: en C89 "void setup()" no es un prototipo y
+ * ImageCraft da los avisos MISRA 2711/2712. Las llamadas no se tocan. */
+static int copy_sketch(const char *from, const char *to)
+{
+    long n;
+    char *b = read_file(from, &n);
+    if (!b) return -1;
+    char *o = malloc((size_t)n * 2 + 16);
+    if (!o) { free(b); return -1; }
+    long w = 0;
+    int depth = 0, in_cmt = 0;
+    char *line = b;
+    while (line < b + n) {
+        char *end = memchr(line, '\n', (size_t)(b + n - line));
+        long len = end ? (long)(end - line) + 1 : (long)(b + n - line);
+        char *paren = NULL;
+        if (depth == 0 && !in_cmt && len < 1024) {
+            char tmp[1024];
+            memcpy(tmp, line, (size_t)len);
+            tmp[len] = 0;
+            char *q = empty_proto(tmp);
+            if (q) paren = line + (q - tmp);
+        }
+        for (long i = 0; i < len; i++) {
+            char c = line[i];
+            if (paren && line + i == paren) { memcpy(o + w, "(void", 5); w += 5; paren = NULL; continue; }
+            o[w++] = c;
+            /* conteo de llaves ignorando comentarios, cadenas y caracteres */
+            if (in_cmt) { if (c == '*' && line[i + 1] == '/') { o[w++] = '/'; i++; in_cmt = 0; } continue; }
+            if (c == '/' && line[i + 1] == '*') { o[w++] = '*'; i++; in_cmt = 1; continue; }
+            if (c == '/' && line[i + 1] == '/') { for (i++; i < len; i++) o[w++] = line[i]; break; }
+            if (c == '"' || c == '\'') {
+                for (i++; i < len; i++) {
+                    o[w++] = line[i];
+                    if (line[i] == '\\' && i + 1 < len) { o[w++] = line[++i]; continue; }
+                    if (line[i] == c) break;
+                }
+                continue;
+            }
+            if (c == '{') depth++;
+            else if (c == '}' && depth > 0) depth--;
+        }
+        line += len;
+    }
+    int r = write_file(to, o, w);
+    free(o);
+    free(b);
+    return r;
+}
+
 static int cmd_compile(int argc, char **argv, int is_asm)
 {
     const char *out = NULL, *src = NULL, *vdir = NULL;
@@ -522,7 +603,7 @@ static int cmd_compile(int argc, char **argv, int is_asm)
     int temp = 0;
     if (strcmp(e, want) && strcasecmp(e, want)) {
         snprintf(work, sizeof work, "%s.psoc%s", out, want);
-        if (copy_file(src, work)) die("no puedo copiar %s", src);
+        if ((is_asm ? copy_file(src, work) : copy_sketch(src, work))) die("no puedo copiar %s", src);
         temp = 1;
     }
     snprintf(capture, sizeof capture, "%s.log", out);
@@ -859,8 +940,18 @@ static int cmd_link(int argc, char **argv)
     char fw[MAXP];
     snprintf(fw, sizeof fw, "%s/psocduino_fw", outdir);
     shortp(fw, s);
+    /* ilinkm8c pone primero el codigo de arranque "crtM8C.o", que busca en las
+     * carpetas -L (PSoC Designer le da obj/boot.o): boot.o se copia con ese
+     * nombre en psoc_boot/ y esa carpeta va en la primera linea del linkfile */
+    {
+        char crt[MAXP], pb[MAXP];
+        snprintf(crt, sizeof crt, "%s/crtM8C.o", bdir);
+        if (na < 1 || copy_file(asmobj[0], crt)) die("no puedo preparar %s", crt);
+        shortp(bdir, pb);
+        fprintf(f, "-L%s\n", qt(pb));
+    }
     fprintf(f, "%s -m\n -o\"%s\"\n", flags, s);
-    for (int i = 0; i < na; i++) { /* boot.o primero (vectores en 0) */
+    for (int i = 1; i < na; i++) { /* boot.o va como crtM8C.o (vectores en 0) */
         shortp(asmobj[i], s);
         fprintf(f, "%s\n", qt(s));
     }

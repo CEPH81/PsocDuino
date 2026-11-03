@@ -3,10 +3,12 @@
 PsocDuino usa el compilador **ImageCraft ICCM8C** que instala PSoC Designer 5.4
 (gratuito). Entre el IDE y ImageCraft está `psocbuild`, que:
 
-- convierte el sketch `.ino`/`.cpp` en `.c` (ImageCraft solo compila **C**);
+- convierte el sketch `.ino`/`.cpp` en `.c` (ImageCraft solo compila **C**) y escribe
+  `setup(void)`/`loop(void)` en las funciones sin parámetros (evita los avisos MISRA 2711/2712);
 - usa rutas cortas de Windows, como PSoC Designer;
 - traduce los errores `!E archivo(línea):` al formato del IDE (se resaltan en el editor);
-- ensambla `boot.asm` y enlaza con **las mismas opciones que PSoC Designer** usó
+- ensambla `boot.asm`, lo entrega al enlazador como `crtM8C.o` (el arranque que
+  `ilinkm8c` pone primero) y enlaza con **las mismas opciones que PSoC Designer** usó
   para ese chip (`linkfile`, `libpsoc.a`, `cms.a`, `arith.a`);
 - muestra el uso de flash y RAM a partir del mapa (`.mp`).
 
@@ -57,8 +59,9 @@ reconstruye `memory.inc` y en cada compilación:
 
 ## 2. Compilar y subir
 
-En el Arduino IDE elija la placa *PSoC 1 CY8C…*, los menús (entrada POR/XRES,
-5 V/3,3 V, seguridad, verificación) y pulse **Subir**. Ejemplos en
+En el Arduino IDE elija la placa *PSoC 1 (PsocDuino)* y en **Herramientas** el
+*Microcontrolador* y los demás menús (entrada POR/XRES, 5 V/3,3 V, reloj, seguridad,
+verificación) y pulse **Subir**. Ejemplos en
 *Archivo → Ejemplos → PsocDuino*.
 
 ## API disponible

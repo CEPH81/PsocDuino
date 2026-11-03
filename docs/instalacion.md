@@ -28,10 +28,10 @@ programa original (clic derecho en `CH341WDM.INF` → Instalar), o el paquete
 PsocDuino usa el compilador ImageCraft que instala PSoC Designer, pero **ya incluye
 la configuración de estos chips** (no hay que importar nada):
 
-| Placa | Variante incluida |
+| Microcontrolador | Variante incluida |
 |---|---|
 | CY8C21234 (16 pines), CY8C21534 (28 pines) | sí (memoria grande, 2 páginas) |
-| CY8C24423A | sí |
+| CY8C24423A (28 pines), CY8C24223A (20 pines) | sí |
 | CY8C27243 (20 pines), CY8C27443 (28 pines) | sí (una variante por chip) |
 | CY8C29466 | sí (memoria grande, 8 páginas, 2 KB de RAM, puertos P0–P7) |
 
@@ -42,8 +42,10 @@ Para otro chip: cree en PSoC Designer un proyecto vacío en C, pulse **Generate*
 
 ## 5. Compilar y subir
 
-1. **Herramientas → Placa → PsocDuino** → su chip.
+1. **Herramientas → Placa → PsocDuino → PSoC 1 (PsocDuino)** (una sola placa).
 2. Menús en **Herramientas**:
+   - *Microcontrolador*: CY8C24423A, CY8C24223A, CY8C27443, CY8C27243, CY8C29466,
+     CY8C21534 o CY8C21234 (se cambia aquí, sin salir de la placa);
    - *Alimentación del chip*: **5 V** o **3,3 V** (calibración del oscilador, LVD y
      vector de programación correctos para esa tensión);
    - *Reloj de CPU*: 24 / 12 / 6 / 3 / 1,5 MHz (a 3,3 V la hoja de datos admite
