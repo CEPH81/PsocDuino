@@ -66,12 +66,17 @@ jobs:
         with:
           msystem: ${{ matrix.sys }}
           install: make
-          pacboy: gcc:p libusb:p pkgconf:p
+          pacboy: gcc:p pkgconf:p
+      - name: libusb estatico (MSYS2 ya no lo trae para 32 bits)
+        run: |
+          curl -sSL -o lu.tar.bz2 https://github.com/libusb/libusb/releases/download/v1.0.27/libusb-1.0.27.tar.bz2
+          tar xjf lu.tar.bz2
+          cd libusb-1.0.27 && ./configure --disable-shared --enable-static --prefix="$PWD/../lu" >/dev/null && make -j4 >/dev/null && make install >/dev/null
       - name: Build (psocprog con CH341DLL + libusb/WinUSB, y psocbuild)
         run: |
           make -C tools/psocprog CC=gcc CFLAGS="-O2 -static" \
-            USB_CFLAGS="$(pkg-config --cflags libusb-1.0)" \
-            USB_LIBS="$(pkg-config --static --libs libusb-1.0)" psocprog
+            USB_CFLAGS="-I$PWD/lu/include/libusb-1.0" \
+            USB_LIBS="$PWD/lu/lib/libusb-1.0.a" psocprog
           make -C tools/psocbuild CC=gcc CFLAGS="-O2 -static"
           ./tools/psocprog/psocprog.exe --version
           ./tools/psocprog/psocprog.exe -b sim:CY8C29466
