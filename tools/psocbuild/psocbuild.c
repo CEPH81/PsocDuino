@@ -184,6 +184,17 @@ static void longp(const char *in, char *out)
     slashes(out);
 }
 
+/* entre comillas si tiene espacios (Windows sin nombres cortos 8.3) */
+static const char *qt(const char *p)
+{
+    static char buf[8][MAXP + 2];
+    static int k = 0;
+    if (!strpbrk(p, " \t&()")) return p;
+    char *b = buf[k++ & 7];
+    snprintf(b, MAXP + 2, "\"%s\"", p);
+    return b;
+}
+
 static void quote_into(char *cmd, const char *arg)
 {
     size_t n = strlen(cmd);
@@ -334,7 +345,7 @@ static const char *tool(const char *name)
         if (exists(t)) {
             char s[MAXP];
             shortp(t, s);
-            snprintf(t, MAXP, "%s", s);
+            snprintf(t, MAXP, "%s", qt(s));
             return t;
         }
     }
@@ -366,7 +377,7 @@ static void std_includes(char *cmd)
     snprintf(p, sizeof p, "%s/tools/include", psocdir());
     shortp(p, s);
     size_t n = strlen(cmd);
-    snprintf(cmd + n, MAXCMD - n, " -I%s", s);
+    snprintf(cmd + n, MAXCMD - n, " -I%s", qt(s));
     static char autoinc[MAXP];
     if (!*cfg("INCLUDE_SUB") && !*autoinc) { /* carpeta de m8c.inc de la familia */
         char root[MAXP], found[32][MAXP];
@@ -384,17 +395,21 @@ static void std_includes(char *cmd)
     if (*autoinc) {
         shortp(autoinc, s);
         size_t n2 = strlen(cmd);
-        snprintf(cmd + n2, MAXCMD - n2, " -I%s", s);
+        snprintf(cmd + n2, MAXCMD - n2, " -I%s", qt(s));
     }
     if (*cfg("INCLUDE_SUB")) {
         snprintf(p, sizeof p, "%s/%s", psocdir(), cfg("INCLUDE_SUB"));
         shortp(p, s);
         n = strlen(cmd);
-        snprintf(cmd + n, MAXCMD - n, " -I%s", s);
+        snprintf(cmd + n, MAXCMD - n, " -I%s", qt(s));
     }
     shortp(variant_dir, s);
     n = strlen(cmd);
-    snprintf(cmd + n, MAXCMD - n, " -I%s -I%s/lib", s, s);
+    {
+        char l2[MAXP];
+        snprintf(l2, sizeof l2, "%s/lib", s);
+        snprintf(cmd + n, MAXCMD - n, " -I%s -I%s", qt(s), qt(l2));
+    }
 }
 
 /* -I/-D/-o con ruta -> acortar */
@@ -404,7 +419,7 @@ static void add_flag(char *cmd, const char *a)
     if (!strncmp(a, "-I", 2) && a[2]) {
         shortp(a + 2, s);
         size_t n = strlen(cmd);
-        snprintf(cmd + n, MAXCMD - n, " -I%s", s);
+        snprintf(cmd + n, MAXCMD - n, " -I%s", qt(s));
     } else quote_into(cmd, a);
 }
 
@@ -489,9 +504,9 @@ static int cmd_compile(int argc, char **argv, int is_asm)
     std_includes(cmd);
     for (int i = 0; i < nf; i++) add_flag(cmd, flags[i]);
     shortp(out, s);
-    { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s", s); }
+    { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s", qt(s)); }
     shortp(work, s);
-    { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " %s", s); }
+    { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " %s", qt(s)); }
 
     int r = run(cmd, capture);
     char tmpbase[MAXP];
@@ -522,7 +537,7 @@ static int cmd_ar(int argc, char **argv)
     char cmd[MAXCMD], a[MAXP], o[MAXP];
     shortp(pos[0], a);
     shortp(pos[1], o);
-    snprintf(cmd, sizeof cmd, "%s -a %s %s", tool("ilibw"), a, o);
+    snprintf(cmd, sizeof cmd, "%s -a %s %s", tool("ilibw"), qt(a), qt(o));
     return run(cmd, NULL) ? 1 : 0;
 }
 
@@ -618,11 +633,15 @@ static void auto_libs(char *out, size_t outsz)
     snprintf(lib, sizeof lib, "%s/tools/lib", psocdir());
     size_t o = 0;
     shortp(lib, s);
-    o += (size_t)snprintf(out + o, outsz - o, "-L%s/%s", s, model);
+    {
+        char lm[MAXP];
+        snprintf(lm, sizeof lm, "%s/%s", s, model);
+        o += (size_t)snprintf(out + o, outsz - o, "-L%s", qt(lm));
+    }
 
     int n = find_files(lib, "cms.a", 1, found, 16, 0), best = -1, bs = -1;
     for (int i = 0; i < n; i++) { int sc = score_dir(found[i], base); if (sc > bs) { bs = sc; best = i; } }
-    if (best >= 0 && bs >= 6) { shortp(found[best], s); o += (size_t)snprintf(out + o, outsz - o, " %s", s); }
+    if (best >= 0 && bs >= 6) { shortp(found[best], s); o += (size_t)snprintf(out + o, outsz - o, " %s", qt(s)); }
     else fprintf(stderr, "psocbuild: aviso: no encuentro cms.a para %s en %s\n", base, lib);
 
     char mroot[MAXP];
@@ -639,7 +658,7 @@ static void auto_libs(char *out, size_t outsz)
         if (strstr(up, "UASW")) sc += 2;
         if (sc > bs) { bs = sc; best = i; }
     }
-    if (best >= 0) { shortp(found[best], s); o += (size_t)snprintf(out + o, outsz - o, " %s", s); }
+    if (best >= 0) { shortp(found[best], s); o += (size_t)snprintf(out + o, outsz - o, " %s", qt(s)); }
     else fprintf(stderr, "psocbuild: aviso: no encuentro arith.a en %s\n", mroot);
 }
 
@@ -756,11 +775,12 @@ static int cmd_link(int argc, char **argv)
             snprintf(cap2, sizeof cap2, "%s/asm.log", bdir);
             snprintf(cmd, sizeof cmd, "%s", tool("iasm8c"));
             shortp(bdir, pbl);
-            { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -I%s/lib -I%s", pbl, pbl); }
+            { char pl[MAXP]; snprintf(pl, sizeof pl, "%s/lib", pbl);
+              size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -I%s -I%s", qt(pl), qt(pbl)); }
             std_includes(cmd);
             shortp(obj, so);
             if (i == 0) snprintf(ss, sizeof ss, "boot.asm"); else shortp(srcs[i], ss);
-            { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s %s", so, ss); }
+            { size_t n = strlen(cmd); snprintf(cmd + n, MAXCMD - n, " -o %s %s", qt(so), qt(ss)); }
             if (chdir(bdir)) die("no puedo entrar en %s", bdir);
             r = run(cmd, cap2);
             if (chdir(cwd)) die("chdir");
@@ -792,11 +812,11 @@ static int cmd_link(int argc, char **argv)
     fprintf(f, "%s -m\n -o\"%s\"\n", flags, s);
     for (int i = 0; i < na; i++) { /* boot.o primero (vectores en 0) */
         shortp(asmobj[i], s);
-        fprintf(f, "%s\n", s);
+        fprintf(f, "%s\n", qt(s));
     }
     for (int i = 0; i < no; i++) {
         shortp(objs[i], s);
-        fprintf(f, "%s\n", s);
+        fprintf(f, "%s\n", qt(s));
     }
     fprintf(f, " %s\n", libs);
     fclose(f);
@@ -804,7 +824,7 @@ static int cmd_link(int argc, char **argv)
     char lfs[MAXP], cap[MAXP];
     shortp(lf, lfs);
     snprintf(cap, sizeof cap, "%s/link.log", outdir);
-    snprintf(cmd, sizeof cmd, "%s @%s", tool("ilinkm8c"), lfs);
+    snprintf(cmd, sizeof cmd, "%s @%s", tool("ilinkm8c"), qt(lfs));
     if (verbose) {
         char *b = read_file(lf, NULL);
         if (b) { fprintf(stderr, "--- linkfile ---\n%s----------------\n", b); free(b); }
