@@ -31,3 +31,20 @@ enciende y entra en programación en los primeros microsegundos.
 
 Mantenga los cables cortos (< 15 cm). Si no detecta el chip, pruebe primero
 `psocprog -i` y revise que P1[0]/P1[1] no tengan cargas fuertes en la placa.
+
+## Circuito POR con selector (diagrama 4 de antiradio.narod.ru)
+
+Es el circuito que usa Carlos: zócalos J2 (8 pines) y J3 (28 pines), transistor
+**Q1** que conmuta la Vdd del chip (R3/R5 aseguran 0 V en apagado), interruptor
+**S1** para activar el modo POR y **SA1** para elegir la fuente de alimentación
+(abierto si la placa del chip tiene su propia fuente).
+
+| S1 | Menú *Entrada a programación* | psocprog |
+|---|---|---|
+| POR activado | **Encendido / POR** | `-m power` |
+| POR desactivado | **XRES** | `-m xres` |
+
+En modo POR deje el menú de tensión en **5 V**: por la caída en Q1 el chip queda
+a unos 4,5 V, lo que no es crítico para el PSoC según el autor del circuito.
+Cable o pistas de menos de 10 cm. (Los valores de Q1/R3/R5 están solo en la
+imagen del esquema original.)

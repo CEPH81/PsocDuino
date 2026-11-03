@@ -11,8 +11,9 @@ Proyecto de [MikrocontrollerCephs](https://www.youtube.com/@mikrocontrollersceph
 |---|---|
 | `psocprog`: programador CH341A (Windows / Linux / macOS) | ✅ listo, probado en simulador |
 | Subida desde el Arduino IDE (`platform.txt`, `boards.txt`) | ✅ |
-| Compilación con ImageCraft (PSoC Designer 5.4) | 🔜 fase 2 |
-| API Arduino (`digitalWrite`, `Serial`, …) | 🔜 fase 3 |
+| Compilación con ImageCraft vía `psocbuild` ([docs/compilacion.md](docs/compilacion.md)) | ✅ probado con arduino-cli; falta confirmar con ImageCraft real |
+| API básica: pines, `millis`, `delay`, `shiftOut`, `pulseIn`… | ✅ |
+| `Serial`, `analogRead`, PWM (módulos de usuario) | 🔜 fase 3 |
 
 Ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -55,9 +56,15 @@ Los binarios para Windows, Linux y macOS los genera GitHub Actions
 En Linux instale `tools/udev/99-ch341a-psocduino.rules`. En Windows ponga junto a
 `psocprog.exe` la `CH341DLL.DLL` (versión de 32 bits) o la `CH341DLLA64.DLL` (versión de 64 bits) del driver CH341PAR de WCH.
 
-## Instalación manual en el Arduino IDE 2.x
+## Instalación manual en el Arduino IDE 2.x (Windows)
 
-1. Clone o copie este repositorio en `Documentos/Arduino/hardware/psocduino/m8c/`.
-2. Copie el binario `psocprog` en `tools/bin/<windows|linux|macos>/`.
-3. Reinicie el IDE: aparecen las placas *PSoC 1* con los menús de tensión, modo de
-   entrada, seguridad y verificación. **Quemar bootloader** borra el chip.
+1. Clone o copie este repositorio en `Documentos\Arduino\hardware\psocduino\m8c\`.
+2. Descargue el artefacto `psocduino-tools-windows-x86` de GitHub Actions y copie
+   `psocprog.exe` y `psocbuild.exe` en `tools\bin\windows\`, junto con la
+   `CH341DLL.DLL` del programa original.
+3. Importe una variante por chip desde un proyecto vacío de PSoC Designer
+   ([docs/compilacion.md](docs/compilacion.md)):
+   `importar_variante.bat "C:\...\base_cy8c27443\base_cy8c27443" cy8c27443`
+4. Reinicie el IDE: aparecen las placas *PSoC 1* con los menús de entrada
+   (POR/XRES), tensión, seguridad y verificación, y los ejemplos *PsocDuino*.
+   **Quemar bootloader** borra el chip.

@@ -54,6 +54,10 @@ run -b sim:CY8C24423A -r "$T/r.hex" 2>&1 | grep -q protegidos \
 run -b sim:CY8C24423A -e >/dev/null 2>&1; run -b sim:CY8C24423A -r "$T/r.hex" >/dev/null 2>&1
 grep -v ":00000001FF" "$T/r.hex" | cut -c10-41 | grep -vq '^0*$' && bad "borrado incompleto" || ok "borrado deja la flash en 00"
 
+fresh; python3 "$HERE/mkhex.py" "$T/u.hex" 1024
+run -b sim:CY8C24423A -w "$T/u.hex" --protect >/dev/null 2>&1; run -b sim:CY8C24423A -r "$T/r.hex" 2>&1 | grep -q "64 bloques protegidos" \
+  && ok "--protect protege toda la flash" || bad "--protect"
+
 echo "4. errores y protecciones"
 python3 "$HERE/mkhex.py" "$T/big.hex" 5000
 run -b sim:CY8C24423A -w "$T/big.hex" 2>&1 | grep -q "solo tiene 4096" && ok "programa demasiado grande rechazado" || bad "tamano no comprobado"

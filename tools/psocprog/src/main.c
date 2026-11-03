@@ -38,6 +38,7 @@ static void usage(void)
 "  -n, --index N           numero de CH341A si hay varios (0)\n"
 "      --verify M          full | checksum | none   (full)\n"
 "      --no-secure         no escribir los bits de seguridad del .hex\n"
+"      --protect           proteger toda la flash (modo W) al terminar\n"
 "      --run | --hold      al terminar: dejar el chip corriendo | en reset (run)\n"
 "      --force             programar aunque el ID no coincida con --chip\n"
 "      --retries N         reintentos de conexion (3)\n"
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
 {
     action_t act = A_IDENT;
     const char *file = NULL, *chip = "auto", *backend = "auto", *verify = "full";
-    int index = 0, run = 1, force = 0, retries = 3, no_secure = 0;
+    int index = 0, run = 1, force = 0, retries = 3, no_secure = 0, protect = 0;
     issp_t t;
     memset(&t, 0, sizeof t);
     t.power_off_ms = 100;
@@ -124,6 +125,7 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "-n") || !strcmp(a, "--index")) index = atoi(ARG());
         else if (!strcmp(a, "--verify")) verify = ARG();
         else if (!strcmp(a, "--no-secure")) no_secure = 1;
+        else if (!strcmp(a, "--protect")) protect = 1;
         else if (!strcmp(a, "--run")) run = 1;
         else if (!strcmp(a, "--hold")) run = 0;
         else if (!strcmp(a, "--force")) force = 1;
@@ -296,6 +298,11 @@ int main(int argc, char **argv)
 
     int sec_any = 0;
     for (int i = 0; i < hex.sec_len; i++) sec_any |= hex.sec[i];
+    if (protect) { /* todos los bloques en modo W (proteccion total) */
+        hex.sec_len = t.blocks / 4;
+        memset(hex.sec, 0xFF, (size_t)hex.sec_len);
+        sec_any = 1;
+    }
     if (hex.sec_len && sec_any && !no_secure) {
         say("Escribiendo bits de seguridad...\n");
         if ((e = issp_secure(&t, hex.sec, hex.sec_len))) {

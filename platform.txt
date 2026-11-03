@@ -2,32 +2,42 @@
 # https://github.com/CEPH81/PsocDuino
 
 name=PsocDuino (Cypress PSoC 1)
-version=0.1.0
+version=0.2.0
 
 # ---------------------------------------------------------------------------
-# Compilador ImageCraft M8C (incluido en PSoC Designer 5.4, solo Windows).
-# FASE 2 - PENDIENTE: las lineas de compilacion se ajustaran con el log real
-# de PSoC Designer (proyecto de referencia por chip). Ver docs/ROADMAP.md.
+# Compilacion: ImageCraft ICCM8C de PSoC Designer 5.x (solo Windows), a traves
+# de psocbuild, que adapta los .ino/.cpp (ImageCraft solo compila C), usa
+# rutas cortas, convierte los errores al formato del IDE y enlaza con la
+# configuracion de la variante (importada de un proyecto de PSoC Designer).
+# Si PSoC Designer no esta en la ruta por defecto, defina la variable de
+# entorno PSOC_DESIGNER_DIR=...\PSoC Designer\5.4\Common\CypressSemiBuildMgr
 # ---------------------------------------------------------------------------
-compiler.path.windows=C:/Program Files (x86)/Cypress/Common/CypressSemiBuildMgr/tools/
-compiler.path=
-compiler.c.cmd=iccm8c.exe
-compiler.asm.cmd=iasm8c.exe
-compiler.ld.cmd=ilinkm8c.exe
-compiler.c.flags=-c -e -D__M8C__
-compiler.asm.flags=
-compiler.ld.flags=
+psocbuild.path={runtime.platform.path}/tools/bin
+psocbuild.path.windows={runtime.platform.path}/tools/bin/windows
+psocbuild.path.linux={runtime.platform.path}/tools/bin/linux
+psocbuild.path.macosx={runtime.platform.path}/tools/bin/macos
+psocbuild.cmd=psocbuild
+psocbuild.cmd.windows=psocbuild.exe
+psocbuild="{psocbuild.path}/{psocbuild.cmd}"
+
+compiler.defines=-DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_M8C -DPSOC_NUM_PORTS={build.ports}
 compiler.c.extra_flags=
-build.extra_flags=-D{build.board} -DPSOC_MCU_{build.mcu}
+compiler.cpp.extra_flags=
+build.extra_flags=
 
-recipe.c.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.c.flags} {build.extra_flags} {compiler.c.extra_flags} {includes} -o "{object_file}" "{source_file}"
-recipe.S.o.pattern="{compiler.path}{compiler.asm.cmd}" {compiler.asm.flags} {includes} -o "{object_file}" "{source_file}"
-recipe.c.combine.pattern="{compiler.path}{compiler.ld.cmd}" {compiler.ld.flags} -o "{build.path}/{build.project_name}.hex" {object_files}
-recipe.size.pattern=
-recipe.size.regex=
+recipe.c.o.pattern={psocbuild} cc -V "{build.variant.path}" -o "{object_file}" "{source_file}" {compiler.defines} {compiler.c.extra_flags} {build.extra_flags} {includes}
+recipe.cpp.o.pattern={psocbuild} cc -V "{build.variant.path}" -o "{object_file}" "{source_file}" {compiler.defines} {compiler.cpp.extra_flags} {build.extra_flags} {includes}
+recipe.S.o.pattern={psocbuild} as -V "{build.variant.path}" -o "{object_file}" "{source_file}" {includes}
+recipe.ar.pattern={psocbuild} ar -V "{build.variant.path}" "{archive_file_path}" "{object_file}"
+recipe.c.combine.pattern={psocbuild} link -V "{build.variant.path}" -o "{build.path}/{build.project_name}" {object_files} "{archive_file_path}"
+recipe.preproc.macros={psocbuild} preproc "{source_file}" -o "{preprocessed_file_path}"
+
+recipe.size.pattern={psocbuild} size "{build.path}/{build.project_name}.mp"
+recipe.size.regex=^Flash:\s+([0-9]+).*
+recipe.size.regex.data=^RAM:\s+([0-9]+).*
 
 # ---------------------------------------------------------------------------
-# Programador: psocprog + CH341A (probado; ver tools/psocprog)
+# Programador: psocprog + CH341A
 # ---------------------------------------------------------------------------
 tools.psocprog.path={runtime.platform.path}/tools/bin
 tools.psocprog.path.windows={runtime.platform.path}/tools/bin/windows

@@ -9,14 +9,15 @@
 - [x] Binarios por GitHub Actions (Windows x86/x64, Linux, macOS)
 - [ ] Prueba con hardware real: CY8C24423A, CY8C27443, CY8C29466
 
-## Fase 2 — Compilación con ImageCraft (PSoC Designer 5.4)
-Necesario de Carlos: un proyecto vacío en C por chip, compilado en PSoC Designer,
-con su log de compilación (`output/`, `lib/`, `boot.asm`, `m8c.inc`, `.hex`).
-- [ ] Recetas reales de `iccm8c` / ensamblador / enlazador en `platform.txt`
-- [ ] Arranque (`boot.asm`) y configuración global por variante
+## Fase 2 — Compilación con ImageCraft (PSoC Designer 5.4) ✅
+- [x] `psocbuild`: .ino→C, rutas cortas, errores al formato del IDE, enlace con
+      el `linkfile` de PSoC Designer, tamaño desde el `.mp`
+- [x] `psocbuild import` + `importar_variante.bat` (variante desde un proyecto vacío)
+- [x] Núcleo C89: pines, `millis` (Sleep Timer calibrado), `delay`, `shiftOut`, `pulseIn`
+- [x] Probado con arduino-cli y herramientas ImageCraft simuladas
+- [ ] Confirmar con ImageCraft real en Windows (CY8C24423A, CY8C27443, CY8C29466)
+- [ ] Calibrar `PSOCDUINO_CALL_CYCLES` con el osciloscopio (ejemplo CalibrarDelay)
 
-## Fase 3 — API Arduino (`cores/psoc1`)
-- [ ] `pinMode`, `digitalWrite`, `digitalRead` (registros PRTxDR / PRTxDMx)
-- [ ] `millis`, `delay`, `delayMicroseconds` (Sleep Timer / contador)
-- [ ] `Serial` (bloque digital UART), `analogRead` (ADC en bloques analógicos)
+## Fase 3 — Periféricos (`cores/psoc1`)
+- [ ] PWM, interrupciones por pin (`attachInterrupt`)
 - [ ] Ejemplos y paquete para el Gestor de placas (`package_psocduino_index.json`)

@@ -1,3 +1,5 @@
 tools/psocprog/psocprog
 tools/psocprog/psocprog.exe
 *.o
+tools/psocbuild/psocbuild
+tools/psocbuild/psocbuild.exe

@@ -52,6 +52,21 @@ muestreo del CH341.
 qué vectores de familia usar. Bloques por banco = 128 si hay ≥ 2 bancos, si no
 `KB × 16`. Ver `tools/psocprog/src/vectors.c` (`psocprog --list`).
 
+### Cómo se conoce el ID de silicio
+
+Cada PSoC 1 trae grabado de fábrica, en la ROM de supervisión (tabla 0), un ID
+de 2 bytes por modelo. El programador lo lee así:
+
+1. **ID-SETUP** ejecuta la función SSC 6 (*TableRead*, `R[F0]=06`, tabla `M[FA]=00`),
+   que copia el ID a la SRAM `F8h`–`F9h`.
+2. **READ-ID-WORD** lee esas dos posiciones (`101 11111000 Z dddddddd Z1` y
+   `101 11111001 …`).
+
+Los valores los publica Cypress en sus *PSoC 1 ISSP Programming Specifications*
+(por ejemplo CY8C29466 = `002A`, CY8C29566 = `002B`, CY8C24794 = `001D`, que
+coinciden con la tabla del programa original). Para un chip nuevo: `psocprog -i`
+muestra el ID leído aunque no esté en la tabla.
+
 ## 4. Problemas del original corregidos en psocprog
 
 1. **ID desconocido → se programaba como CY8C27xxx de 16 K.** Ahora es un error

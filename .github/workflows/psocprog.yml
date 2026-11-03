@@ -1,8 +1,8 @@
-name: psocprog
+name: herramientas
 
 on:
   push:
-    paths: ['tools/psocprog/**', '.github/workflows/psocprog.yml']
+    paths: ['tools/**', 'cores/**', 'tests/**', '.github/workflows/psocprog.yml']
   pull_request:
   workflow_dispatch:
   release:
@@ -17,13 +17,18 @@ jobs:
       - name: Tests (simulador)
         working-directory: tools/psocprog
         run: make test
-      - name: Build
-        working-directory: tools/psocprog
+      - name: Prueba del nucleo (C89)
         run: |
-          make -B USB_LIBS="-Wl,-Bstatic $(pkg-config --variable=libdir libusb-1.0)/libusb-1.0.a -Wl,-Bdynamic -ludev -lpthread"
-          ./psocprog --version
+          gcc -std=c89 -pedantic -Wall -Werror -Wno-unused-parameter -DPSOCDUINO_HOST_TEST -Icores/psoc1 \
+            -o core_test tests/core_host_test.c cores/psoc1/wiring_digital.c cores/psoc1/wiring.c
+          ./core_test
+      - name: Build
+        run: |
+          make -C tools/psocprog -B USB_LIBS="-Wl,-Bstatic $(pkg-config --variable=libdir libusb-1.0)/libusb-1.0.a -Wl,-Bdynamic -ludev -lpthread"
+          make -C tools/psocbuild
+          mkdir -p dist && cp tools/psocprog/psocprog tools/psocbuild/psocbuild dist/
       - uses: actions/upload-artifact@v4
-        with: { name: psocprog-linux-x86_64, path: tools/psocprog/psocprog }
+        with: { name: psocduino-tools-linux-x86_64, path: dist/ }
 
   macos:
     runs-on: macos-14
@@ -35,9 +40,10 @@ jobs:
         run: |
           make test
           make -B USB_LIBS="$(brew --prefix libusb)/lib/libusb-1.0.a -framework IOKit -framework CoreFoundation -framework Security"
-          ./psocprog --version
+          make -C ../psocbuild
+          mkdir -p ../../dist && cp psocprog ../psocbuild/psocbuild ../../dist/
       - uses: actions/upload-artifact@v4
-        with: { name: psocprog-macos-arm64, path: tools/psocprog/psocprog }
+        with: { name: psocduino-tools-macos-arm64, path: dist/ }
 
   windows:
     runs-on: windows-latest
@@ -56,12 +62,13 @@ jobs:
           msystem: ${{ matrix.sys }}
           install: make
           pacboy: gcc:p
-      - name: Build (backend DLL, sin libusb)
-        working-directory: tools/psocprog
+      - name: Build (psocprog con backend DLL + psocbuild)
         run: |
-          make CC=gcc NO_LIBUSB=1 CFLAGS="-O2 -static" psocprog
-          mv psocprog psocprog.exe 2>/dev/null || true
-          ./psocprog.exe --version
-          ./psocprog.exe -b sim:CY8C29466
+          make -C tools/psocprog CC=gcc NO_LIBUSB=1 CFLAGS="-O2 -static" psocprog
+          make -C tools/psocbuild CC=gcc CFLAGS="-O2 -static"
+          ./tools/psocprog/psocprog.exe --version
+          ./tools/psocprog/psocprog.exe -b sim:CY8C29466
+          ./tools/psocbuild/psocbuild.exe --version
+          mkdir -p dist && cp tools/psocprog/psocprog.exe tools/psocbuild/psocbuild.exe dist/
       - uses: actions/upload-artifact@v4
-        with: { name: 'psocprog-${{ matrix.name }}', path: tools/psocprog/psocprog.exe }
+        with: { name: 'psocduino-tools-${{ matrix.name }}', path: dist/ }
