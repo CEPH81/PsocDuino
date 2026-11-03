@@ -13,30 +13,38 @@
  */
 #include "Arduino.h"
 
-/* ciclos de llamada a psocduino_spin9() + calculo del bucle (calibrable) */
+/* ciclos de llamada a psocduino_spin9() + calculo (calibrable con CalibrarDelay) */
 #ifndef PSOCDUINO_CALL_CYCLES
 #define PSOCDUINO_CALL_CYCLES 60
 #endif
-/* ciclos de una vuelta del bucle de bloques de delayMicroseconds() */
+/* ciclos de una vuelta de los bucles de delayMicroseconds() */
 #ifndef PSOCDUINO_LOOP_CYCLES
-#define PSOCDUINO_LOOP_CYCLES 40
+#define PSOCDUINO_LOOP_CYCLES 30
 #endif
 
 /* ciclos de CPU por cada medio microsegundo: 48, 24, 12, 6 o 3 */
 #define PSD_HALF_US ((unsigned int)(F_CPU / 500000UL))
-/* delayMicroseconds() espera en bloques de 32 us */
-#define PSD_BLOCK_US 32
-#define PSD_BLOCK_CYC (PSD_BLOCK_US * F_CPU / 1000000UL)
-#if PSD_BLOCK_CYC > PSOCDUINO_LOOP_CYCLES + PSOCDUINO_CALL_CYCLES
-#define PSD_BLOCK_N ((uint8_t)((PSD_BLOCK_CYC - PSOCDUINO_LOOP_CYCLES - PSOCDUINO_CALL_CYCLES) / 9))
+/* vueltas de spin9 para un bloque de 8 us y para 1 us (constantes) */
+#define PSD_CYC8 (8UL * F_CPU / 1000000UL)
+#define PSD_CYC1 (F_CPU / 1000000UL)
+#if PSD_CYC8 > PSOCDUINO_LOOP_CYCLES + 9
+#define PSD_N8 ((uint8_t)((PSD_CYC8 - PSOCDUINO_LOOP_CYCLES) / 9))
 #else
-#define PSD_BLOCK_N 0
+#define PSD_N8 0
 #endif
+#if PSD_CYC1 > PSOCDUINO_LOOP_CYCLES + 9
+#define PSD_N1 ((uint8_t)((PSD_CYC1 - PSOCDUINO_LOOP_CYCLES) / 9))
+#else
+#define PSD_N1 0
+#endif
+/* microsegundos que ya consume la llamada */
+#define PSD_CALL_US ((unsigned int)(PSOCDUINO_CALL_CYCLES * 1000000UL / F_CPU))
 
 void psocduino_gpio_init(void);
 
-static volatile unsigned long ms_count;
-static volatile unsigned int us_acc;
+/* compartidos con millis()/micros() (wiring_millis.c, wiring_micros.c) */
+volatile unsigned long psocduino_ms;
+volatile unsigned int psocduino_us;
 /* sin valores iniciales: en LMM irian a 'xidata' (aviso __xidata_start) */
 static unsigned int us_per_tick;
 
@@ -51,10 +59,10 @@ unsigned int psocduino_measure_tick(void) { return 2038; } /* 24 MHz, ILO nomina
 #endif
 void psocduino_sleep_isr(void)
 {
-    us_acc += us_per_tick;
-    while (us_acc >= 1000) {
-        us_acc -= 1000;
-        ms_count++;
+    psocduino_us += us_per_tick;
+    while (psocduino_us >= 1000) {
+        psocduino_us -= 1000;
+        psocduino_ms++;
     }
 }
 
@@ -71,37 +79,30 @@ void psocduino_init(void)
     PSD_BANK0();
     PSD_INT_MSK0 = (uint8_t)(PSD_INT_MSK0 | PSD_INT_SLEEP);
 
-    /* un tic = n * 23 ciclos (+9 cada 256); en us = ciclos * 2 / PSD_HALF_US,
-     * calculado en 16 bits sin desbordar */
+    /* un tic = n * 23 ciclos = n * 46 / PSD_HALF_US us; una sola division
+     * de 16 bits (n * 8 < 65536 para cualquier ILO y reloj) */
     n = psocduino_measure_tick();
-    us = (n / PSD_HALF_US) * 46U + ((n % PSD_HALF_US) * 46U) / PSD_HALF_US
-         + ((n >> 8) * 18U) / PSD_HALF_US;
+    us = (unsigned int)((((n << 3) / PSD_HALF_US) * 46U) >> 3);
     us_per_tick = us > 100 ? us : 1953; /* 1953 = 1/512 s con el ILO nominal */
 
-    ms_count = 0;
-    us_acc = 0;
+    psocduino_ms = 0;
+    psocduino_us = 0;
     PSD_GIE_ON();
-}
-
-unsigned long millis(void)
-{
-    unsigned long m;
-    PSD_GIE_OFF();
-    m = ms_count;
-    PSD_GIE_ON();
-    return m;
 }
 
 void delayMicroseconds(unsigned int us)
 {
-    unsigned int cycles;
-    while (us > PSD_BLOCK_US) {
-        psocduino_spin9(PSD_BLOCK_N);
-        us -= PSD_BLOCK_US;
+    /* sin multiplicar ni dividir: bloques de 8 us y luego de 1 us */
+    if (us <= PSD_CALL_US) return;
+    us -= PSD_CALL_US;
+    while (us >= 8) {
+        psocduino_spin9(PSD_N8);
+        us -= 8;
     }
-    cycles = (us * PSD_HALF_US) >> 1; /* us <= 32: sin desborde */
-    if (cycles > PSOCDUINO_CALL_CYCLES + 9)
-        psocduino_spin9((uint8_t)((cycles - PSOCDUINO_CALL_CYCLES) / 9));
+    while (us) {
+        psocduino_spin9(PSD_N1);
+        us--;
+    }
 }
 
 void delay(unsigned long ms)
@@ -110,15 +111,4 @@ void delay(unsigned long ms)
         delayMicroseconds(1000);
         ms--;
     }
-}
-
-/* para micros() (wiring_micros.c): ms y us acumulados leidos juntos */
-unsigned long psocduino_micros_parts(unsigned int *us)
-{
-    unsigned long m;
-    PSD_GIE_OFF();
-    m = ms_count;
-    *us = us_acc;
-    PSD_GIE_ON();
-    return m;
 }

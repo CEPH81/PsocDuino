@@ -1,4 +1,4 @@
-/* wiring_digital.c - pinMode / digitalWrite / digitalRead para PSoC 1
+/* wiring_digital.c - pinMode / digitalWrite para PSoC 1
  *
  * Modos de manejo (PRTxDM2:DM1:DM0) segun el TRM del PSoC 1:
  *   000 pull-down resistivo   001 fuerte          010 alta Z digital
@@ -7,8 +7,10 @@
  * se usa un registro sombra: leer PRTxDR devuelve el pin, no el latch.
  *
  * Registros del puerto p (direccion 4*p): DR = +0, DM2 = +3 (banco 0);
- * DM0 = +0, DM1 = +1 (banco 1). Se accede con reg[X+0] (psocduino_asm.S),
- * sin switch por puerto: el codigo no crece con el numero de puertos. */
+ * DM0 = +0, DM1 = +1 (banco 1). Se modifican con or/and reg[X+0] en
+ * psocduino_asm.S: el codigo no crece con el numero de puertos.
+ * digitalRead y digitalToggle estan en archivos propios (solo se enlazan si
+ * el sketch los usa). */
 #include "Arduino.h"
 
 #ifdef PSOCDUINO_HOST_TEST /* prueba en PC: registros simulados */
@@ -16,55 +18,47 @@ uint8_t psocduino_reg_rd(uint8_t a) { return psd_host_regs[a]; }
 uint8_t psocduino_reg1_rd(uint8_t a) { return psd_host_regs[0x100 + a]; }
 void psocduino_reg_wr(unsigned int av) { psd_host_regs[av >> 8] = (uint8_t)av; }
 void psocduino_reg1_wr(unsigned int av) { psd_host_regs[0x100 + (av >> 8)] = (uint8_t)av; }
+uint8_t psocduino_mask(uint8_t pin) { return (uint8_t)(1 << (pin & 7)); }
+void psocduino_reg_or(unsigned int am) { psd_host_regs[am >> 8] |= (uint8_t)am; }
+void psocduino_reg_and(unsigned int am) { psd_host_regs[am >> 8] &= (uint8_t)am; }
+void psocduino_reg1_or(unsigned int am) { psd_host_regs[0x100 + (am >> 8)] |= (uint8_t)am; }
+void psocduino_reg1_and(unsigned int am) { psd_host_regs[0x100 + (am >> 8)] &= (uint8_t)am; }
 #endif
 
-static uint8_t shadow[PSOC_NUM_PORTS];
-
-/* modo Arduino (INPUT..INPUT_ANALOG) -> DM2:DM1:DM0 */
-static const uint8_t dm_of_mode[6] = { 2, 1, 3, 0, 7, 6 };
-
-static void dr_write(uint8_t port, uint8_t v)
-{
-    shadow[port] = v;
-    PSD_WR(port << 2, v);
-}
+uint8_t psocduino_shadow[PSOC_NUM_PORTS];
 
 void psocduino_gpio_init(void)
 {
     uint8_t p;
-    for (p = 0; p < PSOC_NUM_PORTS; p++) shadow[p] = psocduino_reg_rd((uint8_t)(p << 2));
+    for (p = 0; p < PSOC_NUM_PORTS; p++) psocduino_shadow[p] = psocduino_reg_rd((uint8_t)(p << 2));
 }
 
 void pinMode(uint8_t pin, uint8_t mode)
 {
-    uint8_t port = (uint8_t)(pin >> 3), mask = (uint8_t)(1 << (pin & 7));
-    uint8_t a = (uint8_t)(port << 2), keep = (uint8_t)~mask, dm;
+    uint8_t port = (uint8_t)(pin >> 3), a, m, n;
     if (port >= PSOC_NUM_PORTS) return;
-    dm = mode < 6 ? dm_of_mode[mode] : 2;
-    if (mode == INPUT_PULLUP) dr_write(port, (uint8_t)(shadow[port] | mask));
-    else if (mode == INPUT_PULLDOWN) dr_write(port, (uint8_t)(shadow[port] & keep));
-    PSD_WR(a + 3, (psocduino_reg_rd((uint8_t)(a + 3)) & keep) | ((dm & 4) ? mask : 0));
-    PSD_WR1(a, (psocduino_reg1_rd(a) & keep) | ((dm & 1) ? mask : 0));
-    PSD_WR1(a + 1, (psocduino_reg1_rd((uint8_t)(a + 1)) & keep) | ((dm & 2) ? mask : 0));
+    a = (uint8_t)(port << 2);
+    m = psocduino_mask(pin);
+    n = (uint8_t)~m;
+    /* DM2:DM1:DM0 -> INPUT 010, OUTPUT 001, PULLUP 011, PULLDOWN 000,
+     * OPEN_DRAIN 111, ANALOG 110 */
+    if (mode == INPUT_PULLUP) digitalWrite(pin, HIGH);
+    else if (mode == INPUT_PULLDOWN) digitalWrite(pin, LOW);
+    if (mode == OUTPUT_OPEN_DRAIN || mode == INPUT_ANALOG) psocduino_reg_or(PSD_AM(a + 3, m));
+    else psocduino_reg_and(PSD_AM(a + 3, n));
+    if (mode == OUTPUT || mode == INPUT_PULLUP || mode == OUTPUT_OPEN_DRAIN) psocduino_reg1_or(PSD_AM(a, m));
+    else psocduino_reg1_and(PSD_AM(a, n));
+    if (mode == INPUT_PULLDOWN || mode == OUTPUT) psocduino_reg1_and(PSD_AM(a + 1, n));
+    else psocduino_reg1_or(PSD_AM(a + 1, m));
 }
 
 void digitalWrite(uint8_t pin, uint8_t val)
 {
-    uint8_t port = (uint8_t)(pin >> 3), mask = (uint8_t)(1 << (pin & 7));
+    uint8_t port = (uint8_t)(pin >> 3), v;
     if (port >= PSOC_NUM_PORTS) return;
-    dr_write(port, val ? (uint8_t)(shadow[port] | mask) : (uint8_t)(shadow[port] & ~mask));
-}
-
-void digitalToggle(uint8_t pin)
-{
-    uint8_t port = (uint8_t)(pin >> 3), mask = (uint8_t)(1 << (pin & 7));
-    if (port >= PSOC_NUM_PORTS) return;
-    dr_write(port, (uint8_t)(shadow[port] ^ mask));
-}
-
-int digitalRead(uint8_t pin)
-{
-    uint8_t port = (uint8_t)(pin >> 3), mask = (uint8_t)(1 << (pin & 7));
-    if (port >= PSOC_NUM_PORTS) return LOW;
-    return (psocduino_reg_rd((uint8_t)(port << 2)) & mask) ? HIGH : LOW;
+    v = psocduino_shadow[port];
+    if (val) v |= psocduino_mask(pin);
+    else v &= (uint8_t)~psocduino_mask(pin);
+    psocduino_shadow[port] = v;
+    PSD_WR(port << 2, v);
 }

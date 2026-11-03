@@ -1,8 +1,10 @@
 /* CalibrarDelay - mida con el osciloscopio:
  *   P1_2: pulso de delayMicroseconds(1000)  -> debe durar 1.000 ms
  *   P1_3: cambia cada millis() % 100 == 0   -> periodo de 200 ms
- * Si P1_2 no mide 1 ms, ajuste PSOCDUINO_CALL_CYCLES (platform.local.txt:
- * compiler.c.extra_flags=-DPSOCDUINO_CALL_CYCLES=NN) y avise el valor. */
+ * Si P1_2 no mide 1 ms, ajuste PSOCDUINO_LOOP_CYCLES (ciclos de cada bloque
+ * de 8 us; mas alto = pulso mas corto) en platform.local.txt:
+ *   compiler.c.extra_flags=-DPSOCDUINO_LOOP_CYCLES=NN
+ * y avise el valor. */
 #define PULSO P1_2
 #define TIC P1_3
 
