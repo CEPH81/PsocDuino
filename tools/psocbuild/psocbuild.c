@@ -7,7 +7,9 @@
  *   psocbuild link    [-v] -V VARIANT -o OUTBASE OBJ... LIB...   boot.asm + enlace -> .hex
  *   psocbuild size    MAPFILE                                    uso de flash y RAM
  *   psocbuild preproc SRC OUT                                    (para el IDE: copia)
- *   psocbuild import  PROJECT_DIR VARIANT_DIR                     crea una variante
+ *   psocbuild import  PROJECT_DIR CHIP|VARIANT_DIR                crea una variante
+ *     (con solo el nombre del chip se guarda en %LOCALAPPDATA%\PsocDuino\variants\CHIP,
+ *      fuera del paquete, asi no se pierde al actualizar desde el Gestor de placas)
  *   psocbuild doctor  [-V VARIANT]                               diagnostico de instalacion
  *
  * ImageCraft solo compila C y sus herramientas trabajan con rutas cortas de
@@ -220,16 +222,57 @@ static const char *cfg(const char *k)
     return "";
 }
 
+/* Carpeta de variantes del usuario: sobrevive a las actualizaciones del
+ * paquete instalado por el Gestor de placas. */
+static const char *user_variants(void)
+{
+    static char d[MAXP];
+    const char *e = getenv("PSOCDUINO_VARIANTS");
+    if (e && *e) snprintf(d, sizeof d, "%s", e);
+#ifdef _WIN32
+    else if (getenv("LOCALAPPDATA")) snprintf(d, sizeof d, "%s/PsocDuino/variants", getenv("LOCALAPPDATA"));
+#endif
+    else snprintf(d, sizeof d, "%s/.psocduino/variants", getenv("HOME") ? getenv("HOME") : ".");
+    slashes(d);
+    return d;
+}
+
+static void mkdirs(const char *path)
+{
+    char t[MAXP];
+    snprintf(t, sizeof t, "%s", path);
+    slashes(t);
+    for (char *p = t + 1; *p; p++)
+        if (*p == '/' && p[-1] != ':') { *p = 0; mkdir_p(t); *p = '/'; }
+    mkdir_p(t);
+}
+
+static const char *base_name(const char *p)
+{
+    const char *a = strrchr(p, '/'), *b = strrchr(p, '\\');
+    if (b > a) a = b;
+    return a ? a + 1 : p;
+}
+
 static void load_variant(const char *dir)
 {
-    char p[MAXP];
-    absolute(dir, variant_dir);
+    char p[MAXP], d[MAXP];
+    snprintf(d, sizeof d, "%s", dir);
+    slashes(d);
+    while (strlen(d) > 1 && d[strlen(d) - 1] == '/') d[strlen(d) - 1] = 0;
+    absolute(d, variant_dir);
     snprintf(p, sizeof p, "%s/variant.cfg", variant_dir);
     char *b = read_file(p, NULL);
+    if (!b) { /* variante importada por el usuario */
+        snprintf(variant_dir, sizeof variant_dir, "%s/%s", user_variants(), base_name(d));
+        snprintf(p, sizeof p, "%s/variant.cfg", variant_dir);
+        b = read_file(p, NULL);
+    }
     if (!b)
-        die("la variante %s no esta importada (falta variant.cfg).\n"
+        die("la variante '%s' no esta importada.\n"
             "  Cree un proyecto vacio en PSoC Designer para este chip, compilelo y ejecute:\n"
-            "  psocbuild import <carpeta_del_proyecto> %s", variant_dir, variant_dir);
+            "  importar_variante.bat \"C:\\ruta\\al\\proyecto\" %s\n"
+            "  (se guarda en %s/%s)", base_name(d), base_name(d), user_variants(), base_name(d));
     for (char *line = strtok(b, "\r\n"); line; line = strtok(NULL, "\r\n")) {
         while (isspace((unsigned char)*line)) line++;
         if (*line == '#' || !*line) continue;
@@ -669,7 +712,10 @@ static int cmd_import(int argc, char **argv)
     if (argc < 2) die("uso: psocbuild import CARPETA_PROYECTO_PSOC_DESIGNER CARPETA_VARIANTE");
     char proj[MAXP], vdir[MAXP], p[MAXP], q[MAXP];
     absolute(argv[0], proj);
-    absolute(argv[1], vdir);
+    if (!strchr(argv[1], '/') && !strchr(argv[1], '\\')) /* solo el nombre: carpeta de usuario */
+        snprintf(vdir, sizeof vdir, "%s/%s", user_variants(), argv[1]);
+    else absolute(argv[1], vdir);
+    mkdirs(vdir);
 
     /* el proyecto puede ser la carpeta del workspace o la del proyecto */
     snprintf(p, sizeof p, "%s/project.mk", proj);

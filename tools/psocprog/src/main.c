@@ -63,6 +63,7 @@ static double now_s(void)
 
 static ch341_t *open_backend(const char *b, int index)
 {
+    if (!strcmp(b, "auto") && getenv("PSOCPROG_BACKEND")) b = getenv("PSOCPROG_BACKEND");
     if (!strncmp(b, "sim", 3)) return ch341_open_sim(b[3] == ':' ? b + 4 : NULL);
     if (!strcmp(b, "dll")) return ch341_open_dll(index);
     if (!strcmp(b, "libusb")) return ch341_open_libusb(index);

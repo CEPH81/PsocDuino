@@ -56,15 +56,18 @@ Los binarios para Windows, Linux y macOS los genera GitHub Actions
 En Linux instale `tools/udev/99-ch341a-psocduino.rules`. En Windows ponga junto a
 `psocprog.exe` la `CH341DLL.DLL` (versión de 32 bits) o la `CH341DLLA64.DLL` (versión de 64 bits) del driver CH341PAR de WCH.
 
-## Instalación manual en el Arduino IDE 2.x (Windows)
+## Instalación (Gestor de placas del Arduino IDE 2.x)
 
-1. Clone o copie este repositorio en `Documentos\Arduino\hardware\psocduino\m8c\`.
-2. Los programas ya vienen en `tools\bin\windows\` (`psocprog.exe`, `psocbuild.exe`
-   y `CH341DLL.DLL`); GitHub Actions los recompila y actualiza en cada cambio.
-   Solo debe tener instalado el driver del CH341A (`CH341WDM.INF` del zip original).
-3. Importe una variante por chip desde un proyecto vacío de PSoC Designer
-   ([docs/compilacion.md](docs/compilacion.md)):
-   `importar_variante.bat "C:\...\base_cy8c27443\base_cy8c27443" cy8c27443`
-4. Reinicie el IDE: aparecen las placas *PSoC 1* con los menús de entrada
-   (POR/XRES), tensión, seguridad y verificación, y los ejemplos *PsocDuino*.
-   **Quemar bootloader** borra el chip.
+En **Archivo → Preferencias → URLs adicionales de gestor de placas** agregue:
+
+```
+https://raw.githubusercontent.com/CEPH81/PsocDuino/main/package_psocduino_index.json
+```
+
+y en **Gestor de placas** instale **PsocDuino**. Guía completa (driver, PSoC
+Designer, importar variantes, menús): [docs/instalacion.md](docs/instalacion.md).
+
+### Instalación manual (desarrollo)
+
+Clone el repositorio en `Documentos\Arduino\hardware\psocduino\m8c\`; los
+programas ya vienen en `tools\bin\`.

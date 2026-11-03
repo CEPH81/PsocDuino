@@ -1,0 +1,7 @@
+# Programador para "Subir usando programador" y "Quemar bootloader" (borrar chip)
+ch341a.name=CH341A (psocprog, ISSP)
+ch341a.protocol=issp
+ch341a.program.tool=psocprog
+ch341a.program.tool.default=psocprog
+ch341a.bootloader.tool=psocprog
+ch341a.bootloader.tool.default=psocprog

@@ -98,3 +98,32 @@ jobs:
           if git diff --cached --quiet; then echo "sin cambios"; exit 0; fi
           git commit -m "Binarios de psocprog/psocbuild compilados por CI [skip ci]"
           git push
+
+  # Al publicar un Release (tag vX.Y.Z): paquete del Gestor de placas + indice
+  paquete:
+    if: github.event_name == 'release'
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/download-artifact@v4
+        with: { path: art }
+      - name: Binarios recien compilados
+        run: |
+          cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
+          mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
+          cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
+          cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
+      - name: Empaquetar, subir al Release y actualizar el indice
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          python3 tools/packaging/make_release.py "$TAG" --out dist
+          gh release upload "$TAG" dist/*.tar.bz2 --clobber
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package_psocduino_index.json tools/bin
+          git commit -m "Gestor de placas: PsocDuino $TAG [skip ci]" || exit 0
+          git push

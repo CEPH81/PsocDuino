@@ -48,7 +48,12 @@ tools.psocprog.cmd.windows=psocprog.exe
 
 tools.psocprog.upload.params.verbose=-v
 tools.psocprog.upload.params.quiet=
-tools.psocprog.upload.pattern="{path}/{cmd}" {upload.verbose} -c {upload.chip} -m {upload.mode} -V {upload.vdd} --verify {upload.verify} {upload.secure_flag} --run -w "{build.path}/{build.project_name}.hex"
+tools.psocprog.upload.pattern="{path}/{cmd}" {upload.verbose} -c {upload.chip} -m {upload.mode} -V {upload.vdd} --verify {upload.psoc_verify} {upload.secure_flag} --run -w "{build.path}/{build.project_name}.hex"
+
+# "Subir usando programador" (mismo comando)
+tools.psocprog.program.params.verbose=-v
+tools.psocprog.program.params.quiet=
+tools.psocprog.program.pattern="{path}/{cmd}" {program.verbose} -c {upload.chip} -m {upload.mode} -V {upload.vdd} --verify {upload.psoc_verify} {upload.secure_flag} --run -w "{build.path}/{build.project_name}.hex"
 
 # "Quemar bootloader" = borrar el chip completo (quita tambien la proteccion)
 tools.psocprog.erase.params.verbose=-v
