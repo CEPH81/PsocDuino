@@ -3,7 +3,7 @@
 
 name=PsocDuino (Cypress PSoC 1)
 # Publicar en el Gestor de placas: cambie la version y haga push a main (release.yml)
-version=0.4.0
+version=0.4.1
 
 # ---------------------------------------------------------------------------
 # Compilacion: ImageCraft ICCM8C de PSoC Designer 5.x (solo Windows), a traves
@@ -21,7 +21,7 @@ psocbuild.cmd=psocbuild
 psocbuild.cmd.windows=psocbuild.exe
 psocbuild="{psocbuild.path}/{psocbuild.cmd}"
 
-compiler.defines=-DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_M8C -DF_CPU={build.f_cpu}UL -DPSOC_VCC={build.psoc_vcc}
+compiler.defines=-DARDUINO={runtime.ide.version} -DARDUINO_{build.board} -DARDUINO_ARCH_M8C -DF_CPU={build.f_cpu}UL -DPSOC_VCC={build.psoc_vcc} {build.psoc_ports}
 compiler.c.extra_flags=
 compiler.cpp.extra_flags=
 build.extra_flags=

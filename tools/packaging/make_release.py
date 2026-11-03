@@ -56,8 +56,12 @@ def boards():
     txt = open(os.path.join(ROOT, 'boards.txt')).read()
     # una placa con menu Microcontrolador: el Gestor de placas muestra cada chip
     chips = re.findall(r'(?m)^[a-z0-9_]+\.menu\.chip\.[a-z0-9_]+=(\S+)', txt)
-    names = chips or re.findall(r'(?m)^[a-z0-9_]+\.name=(.*)$', txt)
-    return [{'name': ('PSoC 1 ' + n if chips else n).strip()} for n in names]
+    names = []
+    for n in re.findall(r'(?m)^[a-z0-9_]+\.name=(.*)$', txt) + ['PSoC 1 ' + c for c in chips]:
+        n = n.split(' (')[0].strip()
+        if n not in names:
+            names.append(n)
+    return [{'name': n} for n in names]
 
 def update_index(index_path, version, url, archive, checksum, size):
     if os.path.exists(index_path):

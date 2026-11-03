@@ -42,10 +42,13 @@ Para otro chip: cree en PSoC Designer un proyecto vacío en C, pulse **Generate*
 
 ## 5. Compilar y subir
 
-1. **Herramientas → Placa → PsocDuino → PSoC 1 (PsocDuino)** (una sola placa).
+1. **Herramientas → Placa → PsocDuino** y elija:
+   - una de las placas de siempre (*PSoC 1 CY8C24423A*, *CY8C27443*, *CY8C29466*…), o
+   - **PSoC 1 (todos los modelos)**: aparece el menú **Herramientas → Microcontrolador**
+     con los 54 PSoC 1 que reconoce el programador. Los que dicen *importar variante*
+     necesitan una vez `importar_variante.bat` (paso 4); los demás compilan directamente
+     (los de la misma familia comparten la configuración incluida).
 2. Menús en **Herramientas**:
-   - *Microcontrolador*: CY8C24423A, CY8C24223A, CY8C27443, CY8C27243, CY8C29466,
-     CY8C21534 o CY8C21234 (se cambia aquí, sin salir de la placa);
    - *Alimentación del chip*: **5 V** o **3,3 V** (calibración del oscilador, LVD y
      vector de programación correctos para esa tensión);
    - *Reloj de CPU*: 24 / 12 / 6 / 3 / 1,5 MHz (a 3,3 V la hoja de datos admite
