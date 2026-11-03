@@ -3,7 +3,7 @@
 
 name=PsocDuino (Cypress PSoC 1)
 # Publicar en el Gestor de placas: cambie la version y haga push a main (release.yml)
-version=0.4.6
+version=0.4.7
 
 # ---------------------------------------------------------------------------
 # Compilacion: ImageCraft ICCM8C de PSoC Designer 5.x (solo Windows), a traves
@@ -30,7 +30,7 @@ recipe.c.o.pattern={psocbuild} cc -V "{build.variant.path}" -o "{object_file}" "
 recipe.cpp.o.pattern={psocbuild} cc -V "{build.variant.path}" -o "{object_file}" "{source_file}" {compiler.defines} {compiler.cpp.extra_flags} {build.extra_flags} {includes}
 recipe.S.o.pattern={psocbuild} as -V "{build.variant.path}" -o "{object_file}" "{source_file}" {includes}
 recipe.ar.pattern={psocbuild} ar -V "{build.variant.path}" "{archive_file_path}" "{object_file}"
-recipe.c.combine.pattern={psocbuild} link -V "{build.variant.path}" --vcc {build.psoc_vcc} --cpu {build.psoc_cpu} -o "{build.path}/{build.project_name}" {object_files} "{archive_file_path}"
+recipe.c.combine.pattern={psocbuild} link -V "{build.variant.path}" --chip {build.mcu} --vcc {build.psoc_vcc} --cpu {build.psoc_cpu} -o "{build.path}/{build.project_name}" {object_files} "{archive_file_path}"
 recipe.preproc.macros={psocbuild} preproc "{source_file}" -o "{preprocessed_file_path}"
 
 recipe.size.pattern={psocbuild} size "{build.path}/{build.project_name}.mp"

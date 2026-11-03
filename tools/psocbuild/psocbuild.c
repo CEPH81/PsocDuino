@@ -813,7 +813,7 @@ static int patch_equ(char *buf, size_t cap, const char *name, const char *value)
 /* ----------------------------------------------------------------- link */
 static int cmd_link(int argc, char **argv)
 {
-    const char *vdir = NULL, *outbase = NULL, *vcc = NULL, *cpu = NULL;
+    const char *vdir = NULL, *outbase = NULL, *vcc = NULL, *cpu = NULL, *chip = NULL;
     char *objs[1024];
     int no = 0;
     for (int i = 0; i < argc; i++) {
@@ -821,11 +821,20 @@ static int cmd_link(int argc, char **argv)
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) outbase = argv[++i];
         else if (!strcmp(argv[i], "--vcc") && i + 1 < argc) vcc = argv[++i];
         else if (!strcmp(argv[i], "--cpu") && i + 1 < argc) cpu = argv[++i];
+        else if (!strcmp(argv[i], "--chip") && i + 1 < argc) chip = argv[++i];
         else if (!strcmp(argv[i], "-v")) verbose = 1;
         else if (no < 1024) objs[no++] = argv[i];
     }
     if (!vdir || !outbase) die("uso: psocbuild link -V VARIANT -o SALIDA objetos...");
     load_variant(vdir);
+    {
+        static const char *mhz[] = { "3", "6", "12", "24", "1.5" };
+        int c = cpu && *cpu >= '0' && *cpu <= '4' ? *cpu - '0' : -1;
+        /* stderr: el IDE muestra stderr aunque no este la salida detallada */
+        fprintf(stderr, "PsocDuino: microcontrolador %s  (variante %s, %s, CPU %s MHz)\n",
+               chip && *chip ? chip : cfg("DEVICE"), base_name(variant_dir),
+               vcc && !strcmp(vcc, "3") ? "3.3 V" : "5 V", c >= 0 ? mhz[c] : "?");
+    }
 
     char outdir[MAXP], s[MAXP], cmd[MAXCMD], cwd[MAXP];
     int r = 0;

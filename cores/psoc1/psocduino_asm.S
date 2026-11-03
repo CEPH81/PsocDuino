@@ -95,21 +95,9 @@ _psocduino_reg1_wr:
 
 ;-----------------------------------------------------------------------------
 ; BYTE psocduino_mask(BYTE pin)        1 << (pin & 7) con una tabla (sin bucle)
-; void psocduino_reg_or(WORD am)       reg[X] |= A   (X = direccion, A = mascara)
-; void psocduino_reg_and(WORD am)      reg[X] &= A
-; void psocduino_reg1_or(WORD am)      banco 1
-; void psocduino_reg1_and(WORD am)     banco 1
 ;-----------------------------------------------------------------------------
 export  _psocduino_mask
 export   psocduino_mask
-export  _psocduino_reg_or
-export   psocduino_reg_or
-export  _psocduino_reg_and
-export   psocduino_reg_and
-export  _psocduino_reg1_or
-export   psocduino_reg1_or
-export  _psocduino_reg1_and
-export   psocduino_reg1_and
 
  psocduino_mask:
 _psocduino_mask:
@@ -118,27 +106,3 @@ _psocduino_mask:
     ret
 psd_bits:
     db    01h, 02h, 04h, 08h, 10h, 20h, 40h, 80h
-
- psocduino_reg_or:
-_psocduino_reg_or:
-    or    reg[X+0], A
-    ret
-
- psocduino_reg_and:
-_psocduino_reg_and:
-    and   reg[X+0], A
-    ret
-
- psocduino_reg1_or:
-_psocduino_reg1_or:
-    or    F, 10h
-    or    reg[X+0], A
-    and   F, EFh
-    ret
-
- psocduino_reg1_and:
-_psocduino_reg1_and:
-    or    F, 10h
-    and   reg[X+0], A
-    and   F, EFh
-    ret

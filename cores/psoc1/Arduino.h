@@ -166,10 +166,6 @@ void psocduino_init(void);
 #pragma fastcall16 psocduino_reg_wr
 #pragma fastcall16 psocduino_reg1_wr
 #pragma fastcall16 psocduino_mask
-#pragma fastcall16 psocduino_reg_or
-#pragma fastcall16 psocduino_reg_and
-#pragma fastcall16 psocduino_reg1_or
-#pragma fastcall16 psocduino_reg1_and
 #endif
 void psocduino_spin9(uint8_t n);            /* espera exacta de 9*n ciclos de CPU */
 unsigned int psocduino_measure_tick(void);  /* iteraciones de 23 ciclos por tic */
@@ -178,12 +174,7 @@ uint8_t psocduino_reg1_rd(uint8_t addr);    /* registro del banco 1 */
 void psocduino_reg_wr(unsigned int av);     /* (direccion << 8) | valor, banco 0 */
 void psocduino_reg1_wr(unsigned int av);    /* banco 1 */
 uint8_t psocduino_mask(uint8_t pin);        /* 1 << (pin & 7) */
-void psocduino_reg_or(unsigned int am);     /* reg[a] |= m  ((a << 8) | m) */
-void psocduino_reg_and(unsigned int am);    /* reg[a] &= m */
-void psocduino_reg1_or(unsigned int am);    /* banco 1 */
-void psocduino_reg1_and(unsigned int am);
 extern uint8_t psocduino_shadow[];          /* latch de datos de cada puerto */
-#define PSD_AM(a, m) ((unsigned int)(((unsigned int)(a) << 8) | (uint8_t)(m)))
 #define PSD_WR(a, v)  psocduino_reg_wr((unsigned int)(((unsigned int)(a) << 8) | (uint8_t)(v)))
 #define PSD_WR1(a, v) psocduino_reg1_wr((unsigned int)(((unsigned int)(a) << 8) | (uint8_t)(v)))
 #endif

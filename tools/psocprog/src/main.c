@@ -179,6 +179,9 @@ int main(int argc, char **argv)
         }
     }
 
+    if (want && !quiet) /* stderr: visible en el IDE aunque falle la conexion */
+        fprintf(stderr, "Microcontrolador seleccionado: %s (%dK flash)  entrada=%s  Vdd=%s\n", want->name,
+                want->kb, t.power_mode ? "encendido/POR" : "XRES", t.v3 ? "3.3V" : "5V");
     double t0 = now_s();
     t.d = open_backend(backend, index);
     if (!t.d) return 1;
