@@ -6,9 +6,9 @@
 *		for CY8C29466
 ******************************************************************************/
 
-#define CPU_CLOCK              0x0     //CPU clock value
+#define CPU_CLOCK              0x3     //CPU clock value
 #define CPU_CLOCK_MASK         0x7     //CPU clock mask
-#define CPU_CLOCK_JUST         0x0     //CPU clock value justified
+#define CPU_CLOCK_JUST         0x3     //CPU clock value justified
 #define SELECT_32K             0x0     //32K select value
 #define SELECT_32K_MASK        0x80    //32K select mask
 #define SELECT_32K_JUST        0x0     //32K select value justified
@@ -22,7 +22,7 @@
 #define SWITCH_MODE_PUMP_MASK  0x80    //Switch Mode Pump mask
 #define SWITCH_MODE_PUMP_JUST  0x80    //Switch Mode Pump value justified
 #define TRIP_VOLTAGE           0x7     //Trip Voltage
-#define POWER_SETTING          0x10    //Power Setting [ Vcc / SysClk freq ] 0x10 = 5.0V / 24MHz
+#define POWER_SETTING          0x8     //Power Setting [ Vcc / SysClk freq ] 0x10 = 5.0V / 24MHz
 										//				0x08 = 3.3V / 24MHz
 										//				0x09 = 3.3V / 12MHz
 #define WATCHDOG_ENABLE        0x0     //Watchdog Enable 1 = Enable

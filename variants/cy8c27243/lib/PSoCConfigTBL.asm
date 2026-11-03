@@ -15,11 +15,11 @@
  
 include "m8c.inc"
 ;  Personalization tables 
-export LoadConfigTBL_base_cy8c27443_Bank1
-export LoadConfigTBL_base_cy8c27443_Bank0
-export LoadConfigTBL_base_cy8c27443_Ordered
+export LoadConfigTBL_base_cy8c27243_Bank1
+export LoadConfigTBL_base_cy8c27243_Bank0
+export LoadConfigTBL_base_cy8c27243_Ordered
 AREA lit(rom, rel)
-LoadConfigTBL_base_cy8c27443_Bank0:
+LoadConfigTBL_base_cy8c27243_Bank0:
 ;  Global Register values Bank 0
 	db		60h, 28h		; AnalogColumnInputSelect register (AMX_IN)
 	db		66h, 00h		; AnalogComparatorControl1 register (CMP_CR1)
@@ -43,7 +43,7 @@ LoadConfigTBL_base_cy8c27443_Bank0:
 	db		bdh, 00h		; Row_1_OutputDrive_0 register (RDI1SRO0)
 	db		beh, 00h		; Row_1_OutputDrive_1 register (RDI1SRO1)
 	db		ffh
-LoadConfigTBL_base_cy8c27443_Bank1:
+LoadConfigTBL_base_cy8c27243_Bank1:
 ;  Global Register values Bank 1
 	db		61h, 00h		; AnalogClockSelect1 register (CLK_CR1)
 	db		69h, 00h		; AnalogClockSelect2 register (CLK_CR2)
@@ -64,7 +64,7 @@ LoadConfigTBL_base_cy8c27443_Bank1:
 	db		ddh, 00h		; OscillatorGlobalBusEnableControl register (OSC_GO_EN)
 	db		ffh
 AREA psoc_config(rom, rel)
-LoadConfigTBL_base_cy8c27443_Ordered:
+LoadConfigTBL_base_cy8c27243_Ordered:
 ;  Ordered Global Register values
 	M8C_SetBank0
 	mov	reg[00h], 00h		; Port_0_Data register (PRT0DR)

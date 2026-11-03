@@ -22,8 +22,8 @@ include "GlobalParams.inc"
 
 export LoadConfigInit
 export _LoadConfigInit
-export LoadConfig_base_cy8c27443
-export _LoadConfig_base_cy8c27443
+export LoadConfig_base_cy8c27243
+export _LoadConfig_base_cy8c27243
 
 export NO_SHADOW
 export _NO_SHADOW
@@ -55,17 +55,17 @@ _LoadConfigInit:
  LoadConfigInit:
     RAM_PROLOGUE RAM_USE_CLASS_4
     
-	lcall	LoadConfig_base_cy8c27443
-	lcall	LoadConfigTBL_base_cy8c27443_Ordered
+	lcall	LoadConfig_base_cy8c27243
+	lcall	LoadConfigTBL_base_cy8c27243_Ordered
 
 
     RAM_EPILOGUE RAM_USE_CLASS_4
     ret
 
 ;---------------------------------------------------------------------------
-; Load Configuration base_cy8c27443
+; Load Configuration base_cy8c27243
 ;
-;    Load configuration registers for base_cy8c27443.
+;    Load configuration registers for base_cy8c27243.
 ;    IO Bank 0 registers a loaded first,then those in IO Bank 1.
 ;
 ;       INPUTS: None.
@@ -81,8 +81,8 @@ _LoadConfigInit:
 ;               Page Pointer Registers Modified: 
 ;               CUR_PP
 ;
-_LoadConfig_base_cy8c27443:
- LoadConfig_base_cy8c27443:
+_LoadConfig_base_cy8c27243:
+ LoadConfig_base_cy8c27243:
     RAM_PROLOGUE RAM_USE_CLASS_4
 
 	push	x
@@ -90,15 +90,15 @@ _LoadConfig_base_cy8c27443:
     mov     a, 0                    ; Specify bank 0
     asr     a                       ; Store in carry flag
                                     ; Load bank 0 table:
-    mov     A, >LoadConfigTBL_base_cy8c27443_Bank0
-    mov     X, <LoadConfigTBL_base_cy8c27443_Bank0
+    mov     A, >LoadConfigTBL_base_cy8c27243_Bank0
+    mov     X, <LoadConfigTBL_base_cy8c27243_Bank0
     lcall   LoadConfig              ; Load the bank 0 values
 
     mov     a, 1                    ; Specify bank 1
     asr     a                       ; Store in carry flag
                                     ; Load bank 1 table:
-    mov     A, >LoadConfigTBL_base_cy8c27443_Bank1
-    mov     X, <LoadConfigTBL_base_cy8c27443_Bank1
+    mov     A, >LoadConfigTBL_base_cy8c27243_Bank1
+    mov     X, <LoadConfigTBL_base_cy8c27243_Bank1
     lcall   LoadConfig              ; Load the bank 1 values
 
     M8C_SetBank0                    ; Force return to bank 0

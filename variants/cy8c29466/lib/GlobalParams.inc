@@ -19,9 +19,9 @@
 ;=============================================================================
 ;
 
-CPU_CLOCK:				equ	0h		;CPU clock value
+CPU_CLOCK:				equ	3h		;CPU clock value
 CPU_CLOCK_MASK:			equ	7h		;CPU clock mask
-CPU_CLOCK_JUST:			equ	0h		;CPU clock value justified
+CPU_CLOCK_JUST:			equ	3h		;CPU clock value justified
 SELECT_32K:				equ	0h		;32K select value
 SELECT_32K_MASK:		equ	80h		;32K select mask
 SELECT_32K_JUST:		equ	0h		;32K select value justified
@@ -41,7 +41,7 @@ TRIP_VOLTAGE:			equ	7h   ;Trip Voltage value
 TRIP_VOLTAGE_MASK:      equ 7h  ;Trip Voltage mask
 TRIP_VOLTAGE_JUST:      equ 7h  ;Trip Voltage justified
 
-POWER_SETTING:			equ	10h
+POWER_SETTING:			equ	8h
 POWER_SET_5V0:          equ 10h  ; MASK for 5.0V operation, fast and slow 
 POWER_SET_5V0_24MHZ:    equ 10h  ; Power Setting value for 5.0V fast      
 POWER_SET_5V0_6MHZ:     equ 11h  ; Power Setting value for 5.0V slow      

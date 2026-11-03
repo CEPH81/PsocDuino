@@ -379,12 +379,18 @@ static void std_includes(char *cmd)
     size_t n = strlen(cmd);
     snprintf(cmd + n, MAXCMD - n, " -I%s", qt(s));
     static char autoinc[MAXP];
-    if (!*cfg("INCLUDE_SUB") && !*autoinc) { /* carpeta de m8c.inc de la familia */
+    static int sub_ok = -1;
+    if (sub_ok < 0) {
+        char t[MAXP];
+        snprintf(t, sizeof t, "%s/%s/m8c.inc", psocdir(), cfg("INCLUDE_SUB"));
+        sub_ok = *cfg("INCLUDE_SUB") && exists(t);
+    }
+    if (!sub_ok && !*autoinc) { /* carpeta de m8c.inc de la familia */
         char root[MAXP], found[32][MAXP];
         snprintf(root, sizeof root, "%s/tools/include", psocdir());
         int n = find_files(root, "m8c.inc", 1, found, 32, 0), best = -1, bs = -1;
         for (int i = 0; i < n; i++) {
-            int sc = score_dir(found[i], cfg("BASEDEVICE"));
+            int sc = score_dir(found[i], *cfg("LIBDEVICE") ? cfg("LIBDEVICE") : cfg("BASEDEVICE"));
             if (sc > bs) { bs = sc; best = i; }
         }
         if (best >= 0 && bs >= 6) {
@@ -397,7 +403,7 @@ static void std_includes(char *cmd)
         size_t n2 = strlen(cmd);
         snprintf(cmd + n2, MAXCMD - n2, " -I%s", qt(s));
     }
-    if (*cfg("INCLUDE_SUB")) {
+    if (sub_ok) {
         snprintf(p, sizeof p, "%s/%s", psocdir(), cfg("INCLUDE_SUB"));
         shortp(p, s);
         n = strlen(cmd);
@@ -1099,6 +1105,29 @@ static int import_generated(const char *proj, const char *vdir)
     int kb = flash_kb(base);
     char lastrom[16];
     snprintf(lastrom, sizeof lastrom, "0x%x", kb * 1024 - 1);
+    /* project.mk (aunque la compilacion haya fallado) trae BASEDEVICE y memoria */
+    char libdev[128] = "", incsub[MAXP] = "";
+    snprintf(p, sizeof p, "%s/project.mk", proj);
+    char *mk = read_file(p, NULL);
+    if (mk) {
+        if (*mk_get(mk, "BASEDEVICE")) snprintf(libdev, sizeof libdev, "%s", mk_get(mk, "BASEDEVICE"));
+        if (*mk_get(mk, "LASTROM")) snprintf(lastrom, sizeof lastrom, "%s", mk_get(mk, "LASTROM"));
+        if (*mk_get(mk, "LASTRAM")) snprintf(lastram, sizeof lastram, "%s", mk_get(mk, "LASTRAM"));
+        if (*mk_get(mk, "RELSTART")) snprintf(relstart, sizeof relstart, "%s", mk_get(mk, "RELSTART"));
+        if (*mk_get(mk, "MORE_CFLAGS")) snprintf(cflags, sizeof cflags, "%s", mk_get(mk, "MORE_CFLAGS"));
+        if (*mk_get(mk, "SYS_INC_CONTENTS")) snprintf(sysinc, sizeof sysinc, "%s", mk_get(mk, "SYS_INC_CONTENTS"));
+        char inc[MAXP];
+        snprintf(inc, sizeof inc, "%s", mk_get(mk, "INCLUDE_PATH"));
+        slashes(inc);
+        char *t = strstr(inc, "/tools/include/");
+        if (t) snprintf(incsub, sizeof incsub, "%s", t + 1);
+        free(mk);
+    }
+    {   /* quitar espacios finales de cflags */
+        size_t n = strlen(cflags);
+        while (n && cflags[n - 1] == ' ') cflags[--n] = 0;
+    }
+    kb = (int)((strtoul(lastrom, NULL, 16) + 1) / 1024);
 
     mkdirs(vdir);
     const char *top[] = { "boot.asm", "boot.tpl", "flashsecurity.txt", "opts.txt", "PSoCConfig.xml" };
@@ -1110,8 +1139,12 @@ static int import_generated(const char *proj, const char *vdir)
     copy_lib_files(proj, vdir);
     snprintf(p, sizeof p, "%s/memory.inc", proj);
     snprintf(q, sizeof q, "%s/memory.inc", vdir);
-    if (exists(p)) copy_file(p, q);
-    else write_memory_inc(q, sysinc, tools);
+    {   /* si la compilacion fallo, memory.inc tiene solo las equ: reconstruir */
+        char *mi = read_file(p, NULL);
+        if (mi && strstr(mi, "macro RAM_PROLOGUE")) copy_file(p, q);
+        else write_memory_inc(q, sysinc, tools);
+        free(mi);
+    }
 
     snprintf(q, sizeof q, "%s/boot.asm", vdir);
     long bl;
@@ -1127,7 +1160,8 @@ static int import_generated(const char *proj, const char *vdir)
     FILE *f = fopen(q, "w");
     if (!f) die("no puedo escribir %s", q);
     fprintf(f, "# Generado por 'psocbuild import' (proyecto generado, sin compilar)\n");
-    fprintf(f, "DEVICE=%s\nDISPLAY=%s\nPACKAGE=%s\nBASEDEVICE=%s\nPSOCDIR=\nINCLUDE_SUB=\n", base, disp, pkg, base);
+    fprintf(f, "DEVICE=%s\nDISPLAY=%s\nPACKAGE=%s\nBASEDEVICE=%s\nLIBDEVICE=%s\nPSOCDIR=\nINCLUDE_SUB=%s\n",
+            base, disp, pkg, *libdev ? libdev : base, libdev, incsub);
     fprintf(f, "F_CPU=%ld\nLMM=%s\nCFLAGS=%s\n", hz ? hz : 24000000L, *lmm ? lmm : "0", cflags);
     fprintf(f, "LINK_FLAGS=-F0x30 -g -blit:%s.%s -bdata:0.%s -rwh:SSCParmBlk:0x00F7.0x00FF%s%s\n",
             relstart, lastrom, lastram, *codec ? " " : "", codec);
@@ -1182,6 +1216,13 @@ static int cmd_import(int argc, char **argv)
     /* el proyecto puede ser la carpeta del workspace o la del proyecto */
     snprintf(p, sizeof p, "%s/project.mk", proj);
     if (!exists(p)) return import_generated(proj, vdir);
+    {   /* project.mk sin linkfile/libpsoc.a: la compilacion de PSoC Designer fallo */
+        char l1[MAXP], l2[MAXP], l3[MAXP];
+        snprintf(l1, sizeof l1, "%s/linkfile", proj);
+        snprintf(l2, sizeof l2, "%s/lib/libpsoc.a", proj);
+        snprintf(l3, sizeof l3, "%s/lib/libPSoC.a", proj);
+        if (!exists(l1) || (!exists(l2) && !exists(l3))) return import_generated(proj, vdir);
+    }
     if (!exists(p)) die("no encuentro %s: elija la carpeta del proyecto (la que tiene project.mk,\n"
                         "  boot.asm y lib/) y compilelo antes en PSoC Designer", p);
     char *mk = read_file(p, NULL);
