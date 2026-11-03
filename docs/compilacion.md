@@ -41,7 +41,8 @@ Si PSoC Designer está en otra carpeta, defina la variable de entorno
 
 ### Variantes incluidas y menús
 
-PsocDuino trae las variantes de CY8C21234, CY8C21534, CY8C24423A y CY8C27x43
+PsocDuino trae las variantes de CY8C21234, CY8C21534, CY8C24423A, CY8C27243,
+CY8C27443 y CY8C29466
 (importadas de los proyectos de Carlos). `psocbuild import` también acepta
 proyectos **solo generados** (sin compilar): toma `opts.txt` y `PSoCConfig.xml`,
 reconstruye `memory.inc` y en cada compilación:

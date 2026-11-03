@@ -7,7 +7,7 @@
  * se usa un registro sombra: leer PRTxDR devuelve el pin, no el latch. */
 #include "Arduino.h"
 
-static uint8_t shadow[6];
+static uint8_t shadow[8];
 
 static void dr_write(uint8_t port, uint8_t v)
 {
@@ -19,6 +19,8 @@ static void dr_write(uint8_t port, uint8_t v)
     case 3: PSD_PRT3DR = v; break;
     case 4: PSD_PRT4DR = v; break;
     case 5: PSD_PRT5DR = v; break;
+    case 6: PSD_PRT6DR = v; break;
+    case 7: PSD_PRT7DR = v; break;
     }
 }
 
@@ -31,6 +33,8 @@ static uint8_t dr_read(uint8_t port)
     case 3: return PSD_PRT3DR;
     case 4: return PSD_PRT4DR;
     case 5: return PSD_PRT5DR;
+    case 6: return PSD_PRT6DR;
+    case 7: return PSD_PRT7DR;
     }
     return 0;
 }
@@ -49,6 +53,8 @@ static void dm_write(uint8_t port, uint8_t mask, uint8_t dm)
     case 3: PSD_PRT3DM2 = (uint8_t)((PSD_PRT3DM2 & keep) | b2); break;
     case 4: PSD_PRT4DM2 = (uint8_t)((PSD_PRT4DM2 & keep) | b2); break;
     case 5: PSD_PRT5DM2 = (uint8_t)((PSD_PRT5DM2 & keep) | b2); break;
+    case 6: PSD_PRT6DM2 = (uint8_t)((PSD_PRT6DM2 & keep) | b2); break;
+    case 7: PSD_PRT7DM2 = (uint8_t)((PSD_PRT7DM2 & keep) | b2); break;
     }
     PSD_BANK1();
     switch (port) {
@@ -64,6 +70,10 @@ static void dm_write(uint8_t port, uint8_t mask, uint8_t dm)
             PSD_PRT4DM1 = (uint8_t)((PSD_PRT4DM1 & keep) | b1); break;
     case 5: PSD_PRT5DM0 = (uint8_t)((PSD_PRT5DM0 & keep) | b0);
             PSD_PRT5DM1 = (uint8_t)((PSD_PRT5DM1 & keep) | b1); break;
+    case 6: PSD_PRT6DM0 = (uint8_t)((PSD_PRT6DM0 & keep) | b0);
+            PSD_PRT6DM1 = (uint8_t)((PSD_PRT6DM1 & keep) | b1); break;
+    case 7: PSD_PRT7DM0 = (uint8_t)((PSD_PRT7DM0 & keep) | b0);
+            PSD_PRT7DM1 = (uint8_t)((PSD_PRT7DM1 & keep) | b1); break;
     }
     PSD_BANK0();
 }
@@ -71,7 +81,7 @@ static void dm_write(uint8_t port, uint8_t mask, uint8_t dm)
 void psocduino_gpio_init(void)
 {
     uint8_t p;
-    for (p = 0; p < PSOC_NUM_PORTS && p < 6; p++) shadow[p] = dr_read(p);
+    for (p = 0; p < PSOC_NUM_PORTS && p < 8; p++) shadow[p] = dr_read(p);
 }
 
 void pinMode(uint8_t pin, uint8_t mode)

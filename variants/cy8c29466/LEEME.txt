@@ -1,3 +1,0 @@
-Variante cy8c29466: falta generarla.
-En PSoC Designer abra base_cy8c29466, pulse Generate/Build (F6) y envie el proyecto
-o arrastrelo sobre importar_variante.bat (chip: cy8c29466).

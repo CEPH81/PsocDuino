@@ -31,6 +31,14 @@ extern unsigned char psd_host_regs[512];
 #define PSD_PRT5DM2 psd_host_regs[0x017]
 #define PSD_PRT5DM0 psd_host_regs[0x114]
 #define PSD_PRT5DM1 psd_host_regs[0x115]
+#define PSD_PRT6DR psd_host_regs[0x018]
+#define PSD_PRT6DM2 psd_host_regs[0x01B]
+#define PSD_PRT6DM0 psd_host_regs[0x118]
+#define PSD_PRT6DM1 psd_host_regs[0x119]
+#define PSD_PRT7DR psd_host_regs[0x01C]
+#define PSD_PRT7DM2 psd_host_regs[0x01F]
+#define PSD_PRT7DM0 psd_host_regs[0x11C]
+#define PSD_PRT7DM1 psd_host_regs[0x11D]
 #define PSD_INT_CLR0 psd_host_regs[0x0DA]
 #define PSD_INT_MSK0 psd_host_regs[0x0E0]
 #define PSD_OSC_CR0 psd_host_regs[0x1E0]
@@ -85,6 +93,22 @@ unsigned char PSD_PRT5DM2;
 unsigned char PSD_PRT5DM0;
 #pragma ioport PSD_PRT5DM1: 0x115  /* Port 5 Drive Mode 1 (banco 1) */
 unsigned char PSD_PRT5DM1;
+#pragma ioport PSD_PRT6DR: 0x018  /* Port 6 */
+unsigned char PSD_PRT6DR;
+#pragma ioport PSD_PRT6DM2: 0x01B  /* Port 6 */
+unsigned char PSD_PRT6DM2;
+#pragma ioport PSD_PRT6DM0: 0x118  /* Port 6 */
+unsigned char PSD_PRT6DM0;
+#pragma ioport PSD_PRT6DM1: 0x119  /* Port 6 */
+unsigned char PSD_PRT6DM1;
+#pragma ioport PSD_PRT7DR: 0x01C  /* Port 7 */
+unsigned char PSD_PRT7DR;
+#pragma ioport PSD_PRT7DM2: 0x01F  /* Port 7 */
+unsigned char PSD_PRT7DM2;
+#pragma ioport PSD_PRT7DM0: 0x11C  /* Port 7 */
+unsigned char PSD_PRT7DM0;
+#pragma ioport PSD_PRT7DM1: 0x11D  /* Port 7 */
+unsigned char PSD_PRT7DM1;
 #pragma ioport PSD_INT_CLR0: 0x0DA  /* Interrupt Clear 0 */
 unsigned char PSD_INT_CLR0;
 #pragma ioport PSD_INT_MSK0: 0x0E0  /* Interrupt Mask 0 */

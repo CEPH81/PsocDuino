@@ -85,6 +85,22 @@ typedef unsigned int word;
 #define P5_5 45
 #define P5_6 46
 #define P5_7 47
+#define P6_0 48
+#define P6_1 49
+#define P6_2 50
+#define P6_3 51
+#define P6_4 52
+#define P6_5 53
+#define P6_6 54
+#define P6_7 55
+#define P7_0 56
+#define P7_1 57
+#define P7_2 58
+#define P7_3 59
+#define P7_4 60
+#define P7_5 61
+#define P7_6 62
+#define P7_7 63
 
 #ifndef PSOC_NUM_PORTS
 #define PSOC_NUM_PORTS 3

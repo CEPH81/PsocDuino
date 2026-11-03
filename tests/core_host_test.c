@@ -24,8 +24,13 @@ int main(void) {
     pinMode(P2_3, INPUT_ANALOG);  CHECK(dm(2, 3) == 6);
     CHECK(dm(2, 0) == 2 && dm(2, 1) == 0);          /* otros bits intactos */
     psd_host_regs[0x008] = 0x01;  CHECK(digitalRead(P2_0) == HIGH); CHECK(digitalRead(P2_1) == LOW);
+#if PSOC_NUM_PORTS <= 5
     pinMode(40, OUTPUT); digitalWrite(40, HIGH);     /* puerto 5 > PSOC_NUM_PORTS: ignorado */
     CHECK(psd_host_regs[0x014] == 0);
+#endif
+#if PSOC_NUM_PORTS >= 8
+    pinMode(P7_6, OUTPUT); digitalWrite(P7_6, HIGH); CHECK(dm(7, 6) == 1); CHECK(psd_host_regs[0x01C] == 0x40);
+#endif
     CHECK(map(512, 0, 1023, 0, 255) == 127);
     CHECK(constrain(300, 0, 255) == 255);
     printf(fails ? "%d fallos\n" : "nucleo: todas las pruebas OK\n", fails);

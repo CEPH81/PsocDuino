@@ -30,10 +30,10 @@ la configuración de estos chips** (no hay que importar nada):
 
 | Placa | Variante incluida |
 |---|---|
-| CY8C21234 (16 pines), CY8C21534 (28 pines) | sí (modelo de memoria grande) |
+| CY8C21234 (16 pines), CY8C21534 (28 pines) | sí (memoria grande, 2 páginas) |
 | CY8C24423A | sí |
-| CY8C27243 (20 pines), CY8C27443 (28 pines) | sí |
-| CY8C29466 | pendiente: genere el proyecto e impórtelo (abajo) |
+| CY8C27243 (20 pines), CY8C27443 (28 pines) | sí (una variante por chip) |
+| CY8C29466 | sí (memoria grande, 8 páginas, 2 KB de RAM, puertos P0–P7) |
 
 Para otro chip: cree en PSoC Designer un proyecto vacío en C, pulse **Generate**
 (o Build) y arrastre la carpeta del proyecto sobre **`importar_variante.bat`**
