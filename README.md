@@ -59,9 +59,9 @@ En Linux instale `tools/udev/99-ch341a-psocduino.rules`. En Windows ponga junto 
 ## Instalación manual en el Arduino IDE 2.x (Windows)
 
 1. Clone o copie este repositorio en `Documentos\Arduino\hardware\psocduino\m8c\`.
-2. Descargue el artefacto `psocduino-tools-windows-x86` de GitHub Actions y copie
-   `psocprog.exe` y `psocbuild.exe` en `tools\bin\windows\`, junto con la
-   `CH341DLL.DLL` del programa original.
+2. Los programas ya vienen en `tools\bin\windows\` (`psocprog.exe`, `psocbuild.exe`
+   y `CH341DLL.DLL`); GitHub Actions los recompila y actualiza en cada cambio.
+   Solo debe tener instalado el driver del CH341A (`CH341WDM.INF` del zip original).
 3. Importe una variante por chip desde un proyecto vacío de PSoC Designer
    ([docs/compilacion.md](docs/compilacion.md)):
    `importar_variante.bat "C:\...\base_cy8c27443\base_cy8c27443" cy8c27443`
