@@ -1,23 +1,48 @@
 name: release
 
-# Empuje una etiqueta vX.Y.Z para publicar una version en el Gestor de placas.
+# Para publicar una version en el Gestor de placas: cambie "version=" en
+# platform.txt y haga push a main. Si el Release vX.Y.Z no existe se crea
+# (etiqueta, paquete .tar.bz2 e indice package_psocduino_index.json).
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: ['platform.txt']
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      nuevo: ${{ steps.v.outputs.nuevo }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          TAG="v$(sed -n 's/^version=//p' platform.txt | tr -d '\r')"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "nuevo=no" >> "$GITHUB_OUTPUT"; echo "$TAG ya publicado"
+          else
+            echo "nuevo=si" >> "$GITHUB_OUTPUT"; echo "publicando $TAG"
+          fi
+
   compilar:
+    needs: version
+    if: needs.version.outputs.nuevo == 'si'
     uses: ./.github/workflows/psocprog.yml
 
   paquete:
-    needs: compilar
+    needs: [version, compilar]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ needs.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: main }
@@ -42,7 +67,7 @@ jobs:
 
           Guia: docs/instalacion.md
           EOT
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "PsocDuino $V" --notes-file notes.md
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --target "$GITHUB_SHA" --title "PsocDuino $V" --notes-file notes.md
           gh release upload "$TAG" dist/*.tar.bz2 --clobber
       - name: Actualizar el indice en main
         run: |
@@ -50,4 +75,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package_psocduino_index.json tools/bin
           git commit -m "Gestor de placas: PsocDuino $TAG [skip ci]" || exit 0
+          git pull --rebase origin main
           git push

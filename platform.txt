@@ -2,6 +2,7 @@
 # https://github.com/CEPH81/PsocDuino
 
 name=PsocDuino (Cypress PSoC 1)
+# Publicar en el Gestor de placas: cambie la version y haga push a main (release.yml)
 version=0.2.0
 
 # ---------------------------------------------------------------------------
