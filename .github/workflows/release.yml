@@ -39,6 +39,7 @@ jobs:
 
   paquete:
     needs: [version, compilar]
+    if: always() && needs.version.outputs.nuevo == 'si'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -53,7 +54,7 @@ jobs:
           cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
           mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
           cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
-          cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
+          if [ -d art/psocduino-tools-macos-arm64 ]; then cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*; else echo "macOS: se conservan los binarios anteriores"; fi
       - name: Empaquetar y publicar el Release
         run: |
           python3 tools/packaging/make_release.py "$TAG" --out dist

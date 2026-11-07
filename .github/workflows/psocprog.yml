@@ -36,7 +36,8 @@ jobs:
         with: { name: psocduino-tools-linux-x86_64, path: dist/ }
 
   macos:
-    runs-on: macos-14
+    runs-on: macos-latest
+    continue-on-error: true   # si no hay maquina macOS, no frena la publicacion
     steps:
       - uses: actions/checkout@v4
       - run: brew install libusb
@@ -88,8 +89,8 @@ jobs:
   # Copia los binarios a tools/bin/ del repositorio (para instalar sin entrar a Actions)
   publicar:
     concurrency: { group: publicar-binarios, cancel-in-progress: false }
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.workflow == 'herramientas'
     needs: [linux, macos, windows]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.workflow == 'herramientas' && needs.linux.result == 'success' && needs.windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +108,7 @@ jobs:
             cp art/psocduino-tools-windows-x86/*.exe tools/bin/windows/
             mkdir -p tools/bin/windows-x64 && cp art/psocduino-tools-windows-x64/*.exe tools/bin/windows-x64/
             cp art/psocduino-tools-linux-x86_64/* tools/bin/linux/ && chmod +x tools/bin/linux/*
-            cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*
+            if [ -d art/psocduino-tools-macos-arm64 ]; then cp art/psocduino-tools-macos-arm64/* tools/bin/macos/ && chmod +x tools/bin/macos/*; fi
             git add tools/bin
             if git diff --cached --quiet; then echo "sin cambios"; ok=1; break; fi
             git commit -q -m "Binarios de psocprog/psocbuild compilados por CI [skip ci]"
