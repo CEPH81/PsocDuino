@@ -1164,6 +1164,12 @@ static int cmd_preproc(int argc, char **argv)
                         for (int k = 0; k < ni && !found; k++) found = inc_in(inc[k], name);
                         if (!found) found = inc_in_psd(name);
                         if (!found) {
+                            if (!strcmp(name, "psocduino_perif.h"))
+                                fprintf(stderr, "PsocDuino: la placa elegida no tiene perifericos (Serial, analogRead, analogWrite, dacWrite).\n"
+                                                "  Para la biblioteca PsocDuinoPerif elija en Herramientas -> Placa una de:\n"
+                                                "    PSoC 1 CY8C24423A + perifericos   PSoC 1 CY8C24223A + perifericos\n"
+                                                "    PSoC 1 CY8C27443 + perifericos    PSoC 1 CY8C29466 + perifericos\n"
+                                                "  (\"PSoC 1 (todos los modelos)\" y las placas sin \"+ perifericos\" no la admiten)\n");
                             fprintf(stderr, "%s:%d:10: fatal error: %s: No such file or directory\n"
                                             " #include %c%s%c\n          ^~~~~\ncompilation terminated.\n",
                                     in, line, name, *o, name, *o == '<' ? '>' : '"');
