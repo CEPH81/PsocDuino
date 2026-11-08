@@ -917,9 +917,15 @@ static int cmd_link(int argc, char **argv)
     write_file(p2, gp, (long)strlen(gp));
     free(gp);
 
-    /* 2. ensamblar boot.asm y los .asm de lib/ de la variante (configuracion global) */
-    char asmobj[64][MAXP];
-    int na = 0;
+    /* 2. ensamblar boot.asm y los .asm de lib/ de la variante (configuracion global).
+     * Las rutinas de los User Modules (UART, PWM8, ADCINC...) van a una biblioteca
+     * psoc_boot/libmodulos.a: el enlazador solo toma las que el sketch usa. Las de
+     * interrupcion (*INT.asm) y la configuracion se enlazan siempre (los vectores de
+     * boot.asm y LoadConfigInit las llaman). Las variantes sin modulos no cambian. */
+    char asmobj[64][MAXP], umlib[MAXP];
+    int na = 0, num = 0;
+    snprintf(umlib, sizeof umlib, "%s/libmodulos.a", bdir);
+    remove(umlib);
     {
         static char names[MAXFILES][260];
         char vlib[MAXP];
@@ -951,6 +957,19 @@ static int cmd_link(int argc, char **argv)
             if (chdir(cwd)) die("chdir");
             if (show_output(cap2, NULL, NULL) || r) { fprintf(stderr, "psocbuild: error ensamblando %s\n", bn); return 1; }
             remove(cap2);
+            if (i >= 2 && strncasecmp(bn, "PSoCConfig", 10) && strcasecmp(bn, "PSoCGPIOINT.asm") &&
+                !(strlen(bn) > 7 && !strcasecmp(bn + strlen(bn) - 7, "INT.asm"))) {
+                /* rutina de un User Module: a la biblioteca */
+                char sa[MAXP], cap3[MAXP];
+                shortp(umlib, sa);
+                snprintf(cap3, sizeof cap3, "%s/ar.log", bdir);
+                snprintf(cmd, sizeof cmd, "%s -a %s %s", tool("ilibw"), qt(sa), qt(so));
+                r = run(cmd, cap3);
+                if (show_output(cap3, NULL, NULL) || r) { fprintf(stderr, "psocbuild: error en ilibw con %s\n", bn); return 1; }
+                remove(cap3);
+                num++;
+                continue;
+            }
             if (na < 64) snprintf(asmobj[na++], MAXP, "%s", obj);
         }
     }
@@ -1000,6 +1019,7 @@ static int cmd_link(int argc, char **argv)
         shortp(objs[i], s);
         fprintf(f, "%s\n", qt(s));
     }
+    if (num) { shortp(umlib, s); fprintf(f, "%s\n", qt(s)); }   /* despues de los objetos */
     fprintf(f, " %s\n", libs);
     fclose(f);
 
@@ -1077,16 +1097,86 @@ static int cmd_size(int argc, char **argv)
     return 0;
 }
 
+/* true si NAME existe en DIR o en DIR/lib */
+static int inc_in(const char *dir, const char *name)
+{
+    char p[MAXP];
+    snprintf(p, sizeof p, "%s/%s", dir, name);
+    if (exists(p)) return 1;
+    snprintf(p, sizeof p, "%s/lib/%s", dir, name);
+    return exists(p);
+}
+
+/* cabeceras de PSoC Designer (m8c.h, string.h...): tools/include y sus subcarpetas */
+static int inc_in_psd(const char *name)
+{
+    static char names[MAXFILES][260];
+    char base[MAXP], sub[MAXP];
+    const char *pd = psocdir();
+    if (!pd || !*pd) return 1;   /* sin PSoC Designer: no se puede saber, no molestar */
+    snprintf(base, sizeof base, "%s/tools/include", pd);
+    if (inc_in(base, name)) return 1;
+    int n = list_dir(base, names, MAXFILES, 1);
+    for (int i = 0; i < n; i++) {
+        snprintf(sub, sizeof sub, "%s/%s", base, names[i]);
+        if (inc_in(sub, name)) return 1;
+    }
+    return 0;
+}
+
 static int cmd_preproc(int argc, char **argv)
 {
-    /* El IDE solo necesita el texto para generar prototipos (ctags).
-     * ImageCraft no tiene un modo -E compatible con gcc: se copia. */
+    /* El IDE necesita el texto para generar prototipos (ctags) y, para encontrar
+     * bibliotecas, un error "fatal error: X.h: No such file or directory" con cada
+     * #include que no este en las carpetas -I (como gcc -E). ImageCraft no tiene
+     * un -E compatible: se copia el archivo y se revisan los #include. */
     const char *in = NULL, *out = NULL;
+    const char *inc[64];
+    int ni = 0;
     for (int i = 0; i < argc; i++) {
         if (!strcmp(argv[i], "-o") && i + 1 < argc) out = argv[++i];
+        else if (!strncmp(argv[i], "-I", 2) && ni < 64) inc[ni++] = argv[i][2] ? argv[i] + 2 : (i + 1 < argc ? argv[++i] : "");
         else if (argv[i][0] != '-' && !in) in = argv[i];
     }
-    if (!in || !out) die("uso: psocbuild preproc SRC -o OUT");
+    if (!in || !out) die("uso: psocbuild preproc SRC [-Idir...] -o OUT");
+    {
+        long n;
+        char *b = read_file(in, &n), srcdir[MAXP];
+        int line = 1;
+        if (!b) die("no puedo leer %s", in);
+        snprintf(srcdir, sizeof srcdir, "%s", in);
+        { char *sl = strrchr(srcdir, '/'), *bs = strrchr(srcdir, '\\'); if (bs > sl) sl = bs;
+          if (sl) *sl = 0; else snprintf(srcdir, sizeof srcdir, "."); }
+        for (char *l = b; l && *l; line++) {
+            char *e = strchr(l, '\n'), *q = l, name[260];
+            if (e) *e = 0;
+            while (*q == ' ' || *q == '\t') q++;
+            if (*q == '#') {
+                q++;
+                while (*q == ' ' || *q == '\t') q++;
+                if (!strncmp(q, "include", 7)) {
+                    char *o = q + 7, *c;
+                    while (*o == ' ' || *o == '\t') o++;
+                    if ((*o == '<' || *o == '"') && (c = strchr(o + 1, *o == '<' ? '>' : '"')) && c - o - 1 < 259) {
+                        int found = 0;
+                        snprintf(name, sizeof name, "%.*s", (int)(c - o - 1), o + 1);
+                        if (inc_in(srcdir, name)) found = 1;
+                        for (int k = 0; k < ni && !found; k++) found = inc_in(inc[k], name);
+                        if (!found) found = inc_in_psd(name);
+                        if (!found) {
+                            fprintf(stderr, "%s:%d:10: fatal error: %s: No such file or directory\n"
+                                            " #include %c%s%c\n          ^~~~~\ncompilation terminated.\n",
+                                    in, line, name, *o, name, *o == '<' ? '>' : '"');
+                            free(b);
+                            return 1;
+                        }
+                    }
+                }
+            }
+            l = e ? e + 1 : NULL;
+        }
+        free(b);
+    }
     if (copy_file(in, out)) die("no puedo copiar %s", in);
     return 0;
 }

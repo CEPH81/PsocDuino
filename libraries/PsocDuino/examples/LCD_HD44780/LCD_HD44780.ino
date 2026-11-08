@@ -52,19 +52,20 @@ void lcd_pos(unsigned char col, unsigned char fila) {
   lcd_cmd((unsigned char)(0x80 | (fila ? 0x40 : 0x00) | col));
 }
 
+/* ImageCraft: "const char *" apunta a la FLASH (los textos entre comillas);
+ * no pasar aqui un arreglo de RAM. */
 void lcd_print(const char *s) {
   while (*s) lcd_byte((unsigned char)*s++, HIGH);
 }
 
 void lcd_num(unsigned int v) {         /* sin printf: ahorra flash */
-  char d[6];
-  unsigned char i = 5;
-  d[5] = 0;
+  char d[5];                           /* digitos en RAM: se envian uno a uno */
+  unsigned char i = 0;
   do {
-    d[--i] = (char)('0' + v % 10);
+    d[i++] = (char)('0' + v % 10);
     v /= 10;
-  } while (v && i);
-  lcd_print(&d[i]);
+  } while (v && i < 5);
+  while (i) lcd_byte((unsigned char)d[--i], HIGH);
 }
 
 void setup() {

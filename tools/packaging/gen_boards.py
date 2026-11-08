@@ -86,6 +86,11 @@ CHIPS = [
 MENU_CHIPS = ['CY8C24423A', 'CY8C24223A', 'CY8C27443', 'CY8C27243', 'CY8C29466', 'CY8C21534', 'CY8C21234']
 BOARDS = ['CY8C21234', 'CY8C21534', 'CY8C24223A', 'CY8C24423A', 'CY8C27243', 'CY8C27443', 'CY8C29466']
 
+# Placas con perifericos (User Modules de los proyectos Base2 de Carlos):
+# Serial, analogRead, analogWrite y dacWrite con la biblioteca PsocDuinoPerif
+PERIF_BOARDS = [('CY8C24423A', 'cy8c24423a_perif', 'UART P2_1/P2_0, PWM P1_6, ADC, DAC6'),
+                ('CY8C24223A', 'cy8c24223a_perif', 'UART P1_4/P1_2, PWM P1_6, ADC, DAC8')]
+
 MENUS = [
     ('alim', [('v5', '5 V', {'build.psoc_vcc': '5', 'upload.vdd': '5'}),
               ('v33', '3.3 V', {'build.psoc_vcc': '3', 'upload.vdd': '3.3'})]),
@@ -159,6 +164,18 @@ def main():
         L.append('%s.name=PSoC 1 %s (%dK flash, %s RAM, %s)' % (b, n, c[1], ram_txt(c[2]), c[3]))
         common(L, b)
         for k, v in chip_props(c):
+            L.append('%s.%s=%s' % (b, k, v))
+        menus(L, b)
+        L.append('')
+
+    for n, var, txt in PERIF_BOARDS:
+        c = list(bychip[n])
+        c[4] = var
+        b = var
+        L.append('#' + '-' * 60)
+        L.append('%s.name=PSoC 1 %s + perifericos (%s)' % (b, n, txt))
+        common(L, b)
+        for k, v in chip_props(tuple(c)):
             L.append('%s.%s=%s' % (b, k, v))
         menus(L, b)
         L.append('')
