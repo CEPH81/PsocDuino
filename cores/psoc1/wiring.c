@@ -22,8 +22,6 @@
 #define PSOCDUINO_LOOP_CYCLES 30
 #endif
 
-/* ciclos de CPU por cada medio microsegundo: 48, 24, 12, 6 o 3 */
-#define PSD_HALF_US ((unsigned int)(F_CPU / 500000UL))
 /* vueltas de spin9 para un bloque de 8 us y para 1 us (constantes) */
 #define PSD_CYC8 (8UL * F_CPU / 1000000UL)
 #define PSD_CYC1 (F_CPU / 1000000UL)
@@ -40,7 +38,21 @@
 /* microsegundos que ya consume la llamada */
 #define PSD_CALL_US ((unsigned int)(PSOCDUINO_CALL_CYCLES * 1000000UL / F_CPU))
 
+#ifndef PSOCDUINO_MINCONFIG
 void psocduino_gpio_init(void);
+#endif
+/* desplazamiento de F_CPU respecto a 24 MHz: 24 -> 0, 12 -> 1, ... 1.5 -> 4 */
+#if F_CPU >= 24000000UL
+#define PSD_FSHIFT 0
+#elif F_CPU >= 12000000UL
+#define PSD_FSHIFT 1
+#elif F_CPU >= 6000000UL
+#define PSD_FSHIFT 2
+#elif F_CPU >= 3000000UL
+#define PSD_FSHIFT 3
+#else
+#define PSD_FSHIFT 4
+#endif
 
 /* compartidos con millis()/micros() (wiring_millis.c, wiring_micros.c) */
 volatile unsigned long psocduino_ms;
@@ -71,7 +83,9 @@ void psocduino_init(void)
     unsigned int n, us;
 
     PSD_GIE_OFF();
-    psocduino_gpio_init();
+#ifndef PSOCDUINO_MINCONFIG
+    psocduino_gpio_init(); /* la configuracion de PSoC Designer pudo cambiar PRTxDR */
+#endif
 
     /* Sleep Timer a 512 Hz y latch de su interrupcion */
     PSD_BANK1();
@@ -79,10 +93,11 @@ void psocduino_init(void)
     PSD_BANK0();
     PSD_INT_MSK0 = (uint8_t)(PSD_INT_MSK0 | PSD_INT_SLEEP);
 
-    /* un tic = n * 23 ciclos = n * 46 / PSD_HALF_US us; una sola division
-     * de 16 bits (n * 8 < 65536 para cualquier ILO y reloj) */
-    n = psocduino_measure_tick();
-    us = (unsigned int)((((n << 3) / PSD_HALF_US) * 46U) >> 3);
+    /* un tic = n * 23 ciclos = n * 23 / 24 us a 24 MHz (x2 por cada mitad de
+     * F_CPU). 23/24 = 1 - 1/24 ~ 1 - 1/32 - 1/128 - 1/512 (error 0,07 %): solo
+     * restas y desplazamientos, sin las rutinas de multiplicar y dividir. */
+    n = (unsigned int)(psocduino_measure_tick() << PSD_FSHIFT);
+    us = (unsigned int)(n - (n >> 5) - (n >> 7) - (n >> 9));
     us_per_tick = us > 100 ? us : 1953; /* 1953 = 1/512 s con el ILO nominal */
 
     psocduino_ms = 0;

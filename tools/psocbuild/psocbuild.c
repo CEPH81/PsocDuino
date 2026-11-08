@@ -223,6 +223,7 @@ static int run(const char *cmd, const char *capture)
 }
 
 /* ---------------------------------------------------------- variant.cfg */
+static int variant_minimal(void);
 #define MAXKV 64
 static char *cfg_k[MAXKV], *cfg_v[MAXKV];
 static int ncfg = 0;
@@ -624,6 +625,8 @@ static int cmd_compile(int argc, char **argv, int is_asm)
             n += (size_t)snprintf(cmd + n, MAXCMD - n, " -DF_CPU=%sUL", *cfg("F_CPU") ? cfg("F_CPU") : "24000000");
         if (!has_ports && *cfg("NUM_PORTS"))
             n += (size_t)snprintf(cmd + n, MAXCMD - n, " -DPSOC_NUM_PORTS=%s", cfg("NUM_PORTS"));
+        if (variant_minimal())
+            n += (size_t)snprintf(cmd + n, MAXCMD - n, " -DPSOCDUINO_MINCONFIG");
     }
     std_includes(cmd);
     for (int i = 0; i < nf; i++) add_flag(cmd, flags[i]);
@@ -700,6 +703,40 @@ static int list_dir(const char *dir, char names[][260], int max, int want_dirs)
     closedir(d);
 #endif
     return n;
+}
+
+/* Variante sin User Modules (solo PSoCConfig*, PSoCGPIOINT): su configuracion de
+ * PSoC Designer solo repite los valores de reset, asi que no hace falta enlazarla
+ * (~250 bytes de flash en los chips de 4 KB). FULLCONFIG=1 en variant.cfg la fuerza. */
+static int variant_minimal(void)
+{
+    static char names[MAXFILES][260];
+    char vlib[MAXP];
+    if (!strcmp(cfg("FULLCONFIG"), "1")) return 0;
+    snprintf(vlib, sizeof vlib, "%s/lib", variant_dir);
+    int nf = list_dir(vlib, names, MAXFILES, 0);
+    for (int i = 0; i < nf; i++)
+        if (!strcasecmp(ext(names[i]), ".asm") && strncasecmp(names[i], "PSoCConfig", 10) &&
+            strcasecmp(names[i], "PSoCGPIOINT.asm"))
+            return 0;
+    /* patas configuradas a mano en PSoC Designer (datos, DM0, bus global o
+     * interrupcion distintos de 0): se usa la configuracion completa */
+    char p[MAXP];
+    snprintf(p, sizeof p, "%s/PSoCConfigTBL.asm", vlib);
+    char *t = read_file(p, NULL);
+    if (!t) return 0;
+    char *o = strstr(t, "_Ordered:");
+    int ok = o != NULL;
+    for (char *l = o; ok && l && *l; ) {
+        char *e = strchr(l, '\n');
+        if (e) *e = 0;
+        if (strstr(l, "mov") && (strstr(l, "_Data ") || strstr(l, "DriveMode_0") || strstr(l, "GlobalSelect") ||
+                                 strstr(l, "IntCtrl") || strstr(l, "IntEn")) && !strstr(l, ", 00h"))
+            ok = 0;
+        l = e ? e + 1 : NULL;
+    }
+    free(t);
+    return ok;
 }
 
 /* busca 'file' (sin distinguir mayusculas) bajo root hasta 'depth' niveles */
@@ -933,10 +970,28 @@ static int cmd_link(int argc, char **argv)
         int nf = list_dir(vlib, names, MAXFILES, 0);
         char srcs[65][MAXP];
         int ns = 0;
+        int minimal = variant_minimal();
         snprintf(srcs[ns++], MAXP, "boot.asm");
         snprintf(srcs[ns++], MAXP, "psocduino_areas.asm");
+        if (minimal) {
+            /* LoadConfigInit vacio: los registros ya tienen sus valores de reset */
+            char mc[MAXP];
+            snprintf(mc, sizeof mc, "%s/psocduino_cfg.asm", bdir);
+            const char *txt =
+                "; generado por psocbuild: variante sin User Modules\n"
+                "export LoadConfigInit\nexport _LoadConfigInit\n"
+                "export NO_SHADOW\nexport _NO_SHADOW\n"
+                "AREA psoc_config(rom, rel)\n"
+                "_LoadConfigInit:\n LoadConfigInit:\n    ret\n"
+                "AREA InterruptRAM(ram, rel)\n"
+                "NO_SHADOW:\n_NO_SHADOW:\n";
+            write_file(mc, txt, (long)strlen(txt));
+            snprintf(srcs[ns++], MAXP, "%s", mc);
+        }
         for (int i = 0; i < nf && ns < 65; i++)
-            if (!strcasecmp(ext(names[i]), ".asm")) snprintf(srcs[ns++], MAXP, "%s/%s", vlib, names[i]);
+            if (!strcasecmp(ext(names[i]), ".asm") &&
+                !(minimal && !strncasecmp(names[i], "PSoCConfig", 10)))
+                snprintf(srcs[ns++], MAXP, "%s/%s", vlib, names[i]);
         if (!getcwd(cwd, sizeof cwd)) die("getcwd");
         for (int i = 0; i < ns; i++) {
             char obj[MAXP], cap2[MAXP], so[MAXP], ss[MAXP], pbl[MAXP];
@@ -958,6 +1013,7 @@ static int cmd_link(int argc, char **argv)
             if (show_output(cap2, NULL, NULL) || r) { fprintf(stderr, "psocbuild: error ensamblando %s\n", bn); return 1; }
             remove(cap2);
             if (i >= 2 && strncasecmp(bn, "PSoCConfig", 10) && strcasecmp(bn, "PSoCGPIOINT.asm") &&
+                strcasecmp(bn, "psocduino_cfg.asm") &&
                 !(strlen(bn) > 7 && !strcasecmp(bn + strlen(bn) - 7, "INT.asm"))) {
                 /* rutina de un User Module: a la biblioteca */
                 char sa[MAXP], cap3[MAXP];

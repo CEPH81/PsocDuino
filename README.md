@@ -509,6 +509,12 @@ para ocupar lo mínimo:
   `wiring_millis.c`, `wiring_micros.c`…) dentro de una biblioteca: **solo se enlaza lo
   que el sketch usa**.
 - Los accesos a registros se hacen con rutinas en ensamblador compartidas.
+- **Placas sin periféricos:** la configuración de PSoC Designer solo repetía los valores
+  de reset de los registros, así que no se enlaza (`LoadConfigInit` vacío): ~250 bytes
+  menos. Si importa una variante con patas configuradas a mano en PSoC Designer, se usa
+  la configuración completa automáticamente (o con `FULLCONFIG=1` en `variant.cfg`).
+- La calibración de `millis()` usa solo restas y desplazamientos (sin las rutinas de
+  multiplicar y dividir de 16 bits), y `pinMode` usa una tabla de modos.
 - Los User Modules también se enlazan desde biblioteca (`libmodulos.a`).
 - Al compilar se muestra el uso real de flash y RAM. Si no cabe, el mensaje dice cuántos
   bytes faltan y deja el mapa `.mp` en la carpeta de compilación.
