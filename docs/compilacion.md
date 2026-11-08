@@ -74,7 +74,7 @@ INPUT_ANALOG), `digitalWrite`, `digitalRead`, `digitalToggle`, `millis`, `micros
 
 Limitaciones de ImageCraft: solo C89 (sin clases, sin sobrecarga: `random(a, b)`
 es `randomRange(a, b)`; declare las variables al inicio de cada bloque).
-`Serial` y `analogRead` llegarán con módulos de usuario (fase 3).
+`Serial`, `analogRead`, `analogWrite` y `dacWrite`: placas "+ perifericos" (ver README, sección 9).
 
 ## Tiempos
 

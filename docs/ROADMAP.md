@@ -18,6 +18,13 @@
 - [ ] Confirmar con ImageCraft real en Windows (CY8C24423A, CY8C27443, CY8C29466)
 - [ ] Calibrar `PSOCDUINO_CALL_CYCLES` con el osciloscopio (ejemplo CalibrarDelay)
 
-## Fase 3 — Periféricos (`cores/psoc1`)
-- [ ] PWM, interrupciones por pin (`attachInterrupt`)
-- [ ] Ejemplos y paquete para el Gestor de placas (`package_psocduino_index.json`)
+## Fase 3 — Periféricos
+- [x] Paquete para el Gestor de placas (`package_psocduino_index.json`)
+- [x] Placas "+ perifericos" (CY8C24423A, CY8C24223A, CY8C27443, CY8C29466) y biblioteca
+      PsocDuinoPerif: Serial, analogRead, analogWrite (PWM8), dacWrite
+- [x] I2C por hardware (I2CHW) en 27443/29466; I2C por software en todos
+- [x] Ejemplos: LCD, 74HC595, EEPROM 24C256, MPR121, Serial, ADC, PWM, DAC
+- [ ] Probar los periféricos en el chip
+- [ ] SPI por hardware (SPIM en la fila 1 de 27443/29466) y biblioteca `SPI`
+- [ ] Biblioteca `Wire` sobre I2CHW
+- [ ] Más canales PWM, `attachInterrupt`
