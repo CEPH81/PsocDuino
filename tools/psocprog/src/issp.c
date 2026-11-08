@@ -295,6 +295,12 @@ int issp_checksum(issp_t *t, uint16_t *sum)
 
 int issp_release(issp_t *t, int run)
 {
-    /* only D0 stays an output: SCLK/SDATA float, target keeps running */
-    return t->d->set_d5_d0(t->d, 0x01, run ? 0x00 : 0x01) ? ISSP_ERR_USB : ISSP_OK;
+    /* only D0 stays an output: SCLK/SDATA float.
+     * The chip is still in ISSP programming mode here, so to start the new
+     * program it needs a reset: pulse XRES (or cut Vdd in power mode) and then
+     * release it. Leaving D0 low without the pulse kept the chip stopped. */
+    if (t->d->set_d5_d0(t->d, 0x01, 0x01)) return ISSP_ERR_USB; /* XRES high / Vdd off */
+    if (!run) return ISSP_OK;
+    sleep_ms(t->power_mode ? t->power_off_ms : 10);
+    return t->d->set_d5_d0(t->d, 0x01, 0x00) ? ISSP_ERR_USB : ISSP_OK; /* run */
 }
