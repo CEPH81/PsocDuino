@@ -89,7 +89,9 @@ BOARDS = ['CY8C21234', 'CY8C21534', 'CY8C24223A', 'CY8C24423A', 'CY8C27243', 'CY
 # Placas con perifericos (User Modules de los proyectos Base2 de Carlos):
 # Serial, analogRead, analogWrite y dacWrite con la biblioteca PsocDuinoPerif
 PERIF_BOARDS = [('CY8C24423A', 'cy8c24423a_perif', 'UART P2_1/P2_0, PWM P1_6, ADC, DAC6'),
-                ('CY8C24223A', 'cy8c24223a_perif', 'UART P1_4/P1_2, PWM P1_6, ADC, DAC8')]
+                ('CY8C24223A', 'cy8c24223a_perif', 'UART P1_4/P1_2, PWM P1_6, ADC, DAC8'),
+                ('CY8C27443', 'cy8c27443_perif', 'UART P2_1/P2_0, PWM P1_6, ADC, DAC8, I2C'),
+                ('CY8C29466', 'cy8c29466_perif', 'UART P2_1/P2_0, PWM P1_6, ADC, DAC8, I2C')]
 
 MENUS = [
     ('alim', [('v5', '5 V', {'build.psoc_vcc': '5', 'upload.vdd': '5'}),

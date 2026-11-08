@@ -43,7 +43,7 @@ LoadConfigTBL_base2_cy8c24423a_Bank0:
 	db		87h, 30h		;DAC6_1_CR3(ASD11CR3)
 ;  Instance name PGA, User Module PGA
 ;       Instance name PGA, Block Name GAIN(ACB00)
-	db		71h, 7eh		;PGA_GAIN_CR0(ACB00CR0)
+	db		71h, feh		;PGA_GAIN_CR0(ACB00CR0) PsocDuino: ganancia 1.000 (era 2.000)
 	db		72h, 21h		;PGA_GAIN_CR1(ACB00CR1)
 	db		73h, 20h		;PGA_GAIN_CR2(ACB00CR2)
 	db		70h, 00h		;PGA_GAIN_CR3(ACB00CR3)
