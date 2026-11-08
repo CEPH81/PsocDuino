@@ -177,14 +177,14 @@ Designer; necesarias para la biblioteca **PsocDuinoPerif**):
 | PSoC 1 CY8C27443 + perifericos | TX P2_1, RX P2_0 | P1_6 | P0_1, P0_3, P0_7 | P0_5 (DAC8) | SDA P1_5, SCL P1_7 |
 | PSoC 1 CY8C29466 + perifericos | TX P2_1, RX P2_0 | P1_6 | P0_1, P0_3, P0_7 | P0_5 (DAC8) | SDA P1_5, SCL P1_7 |
 
-> Las placas con periféricos **no** aparecen en el menú *Microcontrolador* de
-> “PSoC 1 (todos los modelos)”: se eligen en la lista de placas.
+> Las mismas cuatro también están en el menú **Microcontrolador** de “PSoC 1 (todos los
+> modelos)” como **“CY8C24423A + perifericos”**, etc. (desde la v0.5.3).
 
 ### 5.2 Menús de Herramientas
 
 | Menú | Opciones | Qué hace |
 |---|---|---|
-| **Microcontrolador** (solo “todos los modelos”) | los 7 chips | elige variante, tamaño de memoria y chip para `psocprog` |
+| **Microcontrolador** (solo “todos los modelos”) | los 7 chips y los 4 “+ perifericos” | elige variante, tamaño de memoria y chip para `psocprog` |
 | **Alimentación del chip** | **5 V** / 3,3 V | calibración del oscilador (IMO) y del bandgap para esa tensión, nivel del detector de baja tensión (LVD) y tensión de programación |
 | **Reloj de CPU** | **24** / 12 / 6 / 3 / 1,5 MHz | divisor de la CPU (SysClk/1, /2, /4, /8, /16). Ver [sección 11](#11-frecuencia-de-la-cpu-y-tensión) |
 | **Entrada a programación** | **Encendido / POR** / XRES | cómo `psocprog` pone el chip en modo programación |
@@ -325,8 +325,9 @@ Solo en las placas **“+ perifericos”**. En el sketch:
 #include <PsocDuinoPerif.h>
 ```
 
-Si elige una placa sin periféricos, el IDE muestra:
-`PsocDuino: la placa elegida no tiene perifericos ... elija una placa "+ perifericos"`.
+Hay que elegir una placa **“+ perifericos”** o, en “PSoC 1 (todos los modelos)”, un
+**Microcontrolador “... + perifericos”**. Si no, el IDE muestra la variante en uso y:
+`PsocDuino: la placa elegida no tiene perifericos ...`.
 
 ### 9.1 Serial (UART 8N1)
 
@@ -684,7 +685,7 @@ WCH; en Linux/macOS, libusb.
 
 | Mensaje / síntoma | Causa y solución |
 |---|---|
-| `psocduino_perif.h: No such file or directory` / `la placa elegida no tiene perifericos` | usó `PsocDuinoPerif` con una placa sin periféricos. Elija una placa **“+ perifericos”** (sección 5.1) |
+| `psocduino_perif.h: No such file or directory` / `la placa elegida no tiene perifericos` | usó `PsocDuinoPerif` con una placa sin periféricos (la línea `variante en uso:` dice cuál). Elija una placa **“+ perifericos”**, o en “PSoC 1 (todos los modelos)” el Microcontrolador **“... + perifericos”** (sección 5.1) |
 | `la variante 'xxx' no esta importada` | chip sin variante: importe una (sección 17) |
 | `no encuentro PSoC Designer` | defina `PSOC_DESIGNER_DIR` (sección 3.3) y reinicie el IDE |
 | `cannot load source file "Designer\5.4\...\icppw.exe"` | Windows sin nombres cortos: `psocbuild` crea `%LOCALAPPDATA%\PsocDuino\psd`. Si no puede: `mklink /J %LOCALAPPDATA%\PsocDuino\psd "C:\Program Files (x86)\Cypress\PSoC Designer\5.4\Common\CypressSemiBuildMgr"` |

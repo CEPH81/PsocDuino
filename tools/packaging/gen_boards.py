@@ -195,6 +195,14 @@ def main():
         L.append('%s.menu.chip.%s=%s (%dK flash, %s RAM, %s)' % (b, oid, c[0], c[1], ram_txt(c[2]), c[3]))
         for k, v in chip_props(c):
             L.append('%s.menu.chip.%s.%s=%s' % (b, oid, k, v))
+    # las mismas placas con perifericos (proyectos Base2): biblioteca PsocDuinoPerif
+    for n, var, txt in PERIF_BOARDS:
+        c = list(bychip[n])
+        c[4] = var
+        oid = var
+        L.append('%s.menu.chip.%s=%s + perifericos (%s)' % (b, oid, n, txt))
+        for k, v in chip_props(tuple(c)):
+            L.append('%s.menu.chip.%s.%s=%s' % (b, oid, k, v))
     menus(L, b)
     L.append('')
     open(os.path.join(ROOT, 'boards.txt'), 'w').write('\n'.join(L))
