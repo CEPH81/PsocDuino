@@ -691,6 +691,7 @@ WCH; en Linux/macOS, libusb.
 | `cannot load source file "Designer\5.4\...\icppw.exe"` | Windows sin nombres cortos: `psocbuild` crea `%LOCALAPPDATA%\PsocDuino\psd`. Si no puede: `mklink /J %LOCALAPPDATA%\PsocDuino\psd "C:\Program Files (x86)\Cypress\PSoC Designer\5.4\Common\CypressSemiBuildMgr"` |
 | `area 'xxx' not large enough` / el programa no cabe | el sketch es demasiado grande para el chip. El mensaje dice cuánto falta y deja el `.mp`. Vea la sección 13 o use un chip mayor |
 | aviso `__xidata_start label not found` (chips LMM: 21x34, 29466) | inofensivo; el programa funciona |
+| `error programando el bloque N: tiempo de espera agotado` | corregido en la v0.5.4: la espera de cada bloque es por tiempo (hasta 2 s), como el original. Actualice |
 | `CH341A not present` | programador desconectado, driver no instalado o jumper fuera de 1–2 (sección 3.2) |
 | `el PSoC no responde` | revise S1 y el menú *Entrada a programación* (POR/XRES), el cableado, la resistencia de 1 kΩ y la alimentación; nada conectado a P1_0/P1_1 |
 | el ID leído no coincide con la placa | eligió otro chip en el IDE; `psocprog -i` muestra el real |

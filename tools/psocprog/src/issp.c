@@ -17,12 +17,19 @@
 #ifdef _WIN32
 #include <windows.h>
 static void sleep_ms(int ms) { Sleep((DWORD)ms); }
+static unsigned long now_ms(void) { return (unsigned long)GetTickCount(); }
 #else
 #include <time.h>
 static void sleep_ms(int ms)
 {
     struct timespec ts = { ms / 1000, (long)(ms % 1000) * 1000000L };
     nanosleep(&ts, NULL);
+}
+static unsigned long now_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (unsigned long)ts.tv_sec * 1000UL + (unsigned long)(ts.tv_nsec / 1000000L);
 }
 #endif
 
@@ -101,16 +108,29 @@ static uint8_t rx_byte(int first)
     return v;
 }
 
-/* WAIT-AND-POLL: SDATA must go high right after the vector, then low. */
+/* WAIT-AND-POLL: SDATA must go high right after the vector, then low.
+ * The original tool polls GetInput ~500 times and then simply continues even if
+ * SDATA is still high. Fast USB hosts can finish those 500 reads before a flash
+ * block is written, so poll by wall clock (up to 2 s) and, like the original,
+ * continue afterwards: the full verification catches a block that failed. */
+#define POLL_MS 2000
 static int wait_poll(issp_t *t, int len)
 {
+    uint32_t st;
+    unsigned long t0;
     if (!hi(len + 2)) return ISSP_ERR_FAIL;
     for (int i = 0; i <= POLL_MAX + 1; i++) {
-        uint32_t st;
         if (t->d->get_input(t->d, &st)) return ISSP_ERR_USB;
         if (!(st & 0x80)) return ISSP_OK;
     }
-    return ISSP_ERR_TIMEOUT;
+    t0 = now_ms();
+    while (now_ms() - t0 < POLL_MS) {
+        sleep_ms(1);
+        if (t->d->get_input(t->d, &st)) return ISSP_ERR_USB;
+        if (!(st & 0x80)) return ISSP_OK;
+    }
+    if (ch341_verbose) fprintf(stderr, "[issp] SDATA sigue en alto tras %d ms; se continua como el original\n", POLL_MS);
+    return ISSP_OK;
 }
 
 static int exec_vec(issp_t *t, const char *v)
