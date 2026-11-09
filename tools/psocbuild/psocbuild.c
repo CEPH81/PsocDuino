@@ -1227,11 +1227,9 @@ static int cmd_preproc(int argc, char **argv)
                                     if (v && (v[8] == '/' || v[8] == '\\')) vn = v + 9;
                                 }
                                 fprintf(stderr, "PsocDuino: variante en uso: %s\n", vn);
-                                fprintf(stderr, "PsocDuino: la placa elegida no tiene perifericos (Serial, analogRead, analogWrite, dacWrite).\n"
-                                                "  Para la biblioteca PsocDuinoPerif elija en Herramientas -> Placa una de:\n"
-                                                "    PSoC 1 CY8C24423A + perifericos   PSoC 1 CY8C24223A + perifericos\n"
-                                                "    PSoC 1 CY8C27443 + perifericos    PSoC 1 CY8C29466 + perifericos\n"
-                                                "  o \"PSoC 1 (todos los modelos)\" con Herramientas -> Microcontrolador = \"... + perifericos\"\n");
+                                fprintf(stderr, "PsocDuino: esta variante no tiene psocduino_perif.h (patas de los perifericos).\n"
+                                                "  Las variantes incluidas ya lo traen; en una variante importada copie el\n"
+                                                "  psocduino_perif.h de la variante incluida del mismo chip.\n");
                             }
                             fprintf(stderr, "%s:%d:10: fatal error: %s: No such file or directory\n"
                                             " #include %c%s%c\n          ^~~~~\ncompilation terminated.\n",

@@ -24,6 +24,8 @@
       PsocDuinoPerif: Serial, analogRead, analogWrite (PWM8), dacWrite
 - [x] I2C por hardware (I2CHW) en 27443/29466; I2C por software en todos
 - [x] Ejemplos: LCD, 74HC595, EEPROM 24C256, MPR121, Serial, ADC, PWM, DAC
+- [x] Periféricos por registros en todas las placas (SAR 6 bits, PWM8, UART, DAC6)
+- [x] Ejemplos sin bloques: SoftSerial_Eco, PWM_Software, ADC_RC_Potenciometro
 - [ ] Probar los periféricos en el chip
 - [ ] SPI por hardware (SPIM en la fila 1 de 27443/29466) y biblioteca `SPI`
 - [ ] Biblioteca `Wire` sobre I2CHW
