@@ -360,8 +360,11 @@ int v = analogRead(P0_3);    /* 0..1023 (10 bits por defecto) */
 analogReadResolution(12);    /* 6 a 12 bits: 12 -> 0..4095 */
 ```
 
-- ADC incremental **ADCINC de 12 bits** con un **PGA de ganancia 1**: el rango es de
-  **0 V a Vdd**.
+- ADC incremental **ADCINC de 12 bits** con un **PGA de ganancia 1**. Rango de
+  **0 V a Vdd**: referencia analógica Vdd/2 ± Vdd/2 (desde la v0.6.1; antes era
+  Vdd/2 ± bandgap, de 1,2 a 3,8 V con 5 V). A 5 V cada paso de 12 bits es de 1,22 mV.
+- Para pasar a milivoltios sin coma flotante: `mv = ((long)v * VDD_MV) >> 12` con
+  `analogReadResolution(12)`; `PSOC_VCC` vale 5 o 3 según el menú *Alimentación*.
 - Entradas: P0_1, P0_3, P0_7 (y P0_5). Otras patas devuelven 0.
 - Si el ADC no responde, devuelve 0 después de un tiempo en lugar de colgarse.
 
@@ -565,9 +568,15 @@ ImageCraft solo compila **C89**. `psocbuild` convierte el `.ino` en `.c`, pero:
 | Ejemplo | Qué hace | Patas |
 |---|---|---|
 | Serial_Eco | eco por el UART a 115200 | ver tabla 5.1 |
-| Potenciometro_ADC | lee un potenciómetro y envía el valor y los mV por Serial | cursor en P0_3 |
+| Potenciometro_ADC | lee un potenciómetro y envía el valor (12 bits), los mV y el % de giro por Serial | cursor en P0_3 |
 | PWM_Fade | un LED sube y baja de brillo | LED con 330 Ω en P1_6 |
 | DAC_Rampa | rampa de 0 V a Vdd (osciloscopio); un potenciómetro cambia la velocidad | salida P0_5, potenciómetro P0_3 |
+| LM35_Temperatura | temperatura con LM35 (10 mV/°C), un decimal, promedio de 16 lecturas; necesita Vdd = 5 V | Vout del LM35 en P0_1 |
+| NTC_Temperatura | temperatura con NTC 10 k (B 3950) y resistencia fija de 10 k; tabla de -20 a 105 °C con interpolación (error < 0,3 °C), avisa si el sensor está abierto o en corto | divisor en P0_7 |
+
+Los tres de sensores (Potenciometro_ADC, LM35_Temperatura y NTC_Temperatura) usan
+patas distintas (P0_3, P0_1 y P0_7), así que se pueden conectar a la vez. Ninguno usa
+coma flotante: caben en los chips de 4 KB.
 
 Los ejemplos con patas del puerto 2 son para los chips de 28 pines. En los de 16/20
 pines (CY8C21234, CY8C24223A, CY8C27243) cambie las patas por otras que existan.
