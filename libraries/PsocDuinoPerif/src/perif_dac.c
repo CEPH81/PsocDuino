@@ -1,9 +1,6 @@
 /* perif_dac.c - dacWrite (0..255) con el User Module DAC6 o DAC8, salida en P0_5. */
 #include "PsocDuinoPerif.h"
 #include "psocduino_perif.h"
-#if PSD_HW
-#include "perif_hw.h"
-#endif
 
 #if PSD_HAS_DAC
 
@@ -18,7 +15,4 @@ void dacWrite(uint8_t value)
     PSD_DAC_WRITE(value);
 }
 
-#else
-/* este chip no tiene el bloque necesario (CY8C21x34: sin DAC ni SAR) */
-void dacWrite(uint8_t value) { (void)value; }
 #endif

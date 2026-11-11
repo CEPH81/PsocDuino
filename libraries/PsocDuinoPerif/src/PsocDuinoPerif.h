@@ -1,7 +1,6 @@
 /* PsocDuinoPerif.h - perifericos para PSoC 1 con PsocDuino (C89 para ImageCraft).
- * Placas "PSoC 1 ... + perifericos": User Modules de su proyecto de PSoC Designer
- * (ADC de 12 bits). Demas placas: los bloques se configuran por registros la
- * primera vez que se usan (perif_hw.h: ADC SAR de 6 bits, PWM8, UART, DAC6).
+ * Solo para las placas "PSoC 1 ... + perifericos": usan los User Modules de su
+ * proyecto de PSoC Designer (ver psocduino_perif.h de la variante).
  *
  *   Serial.begin(115200);  Serial.print("texto");  Serial.printNum(n);
  *   Serial.available(); Serial.read(); Serial.write(c);

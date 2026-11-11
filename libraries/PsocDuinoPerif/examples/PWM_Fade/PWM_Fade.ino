@@ -1,6 +1,5 @@
 /* PWM_Fade - un LED en P1_6 (con resistencia de 330 ohm a GND) sube y baja de brillo.
- * El PWM es por hardware (bloque PWM8): 31,25 kHz, 0..255. En todas las placas
- * (CY8C21234 de 16 pines: la salida PWM es P0_6; cambie LED_PWM). */
+ * El PWM es por hardware (User Module PWM8): 31,25 kHz, 0..255. */
 #include <PsocDuinoPerif.h>
 
 #define LED_PWM P1_6

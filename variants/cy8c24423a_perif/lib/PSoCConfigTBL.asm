@@ -64,7 +64,7 @@ LoadConfigTBL_base2_cy8c24423a_Bank0:
 ;  Global Register values Bank 0
 	db		60h, 09h		; AnalogColumnInputSelect register (AMX_IN)
 	db		66h, 00h		; AnalogComparatorControl1 register (CMP_CR1)
-	db		63h, 15h		; AnalogReferenceControl register (ARF_CR) PsocDuino: Vdd/2 +- Vdd/2 (rango 0..Vdd; era 05h = Vdd/2 +- bandgap)
+	db		63h, 05h		; AnalogReferenceControl register (ARF_CR)
 	db		65h, 00h		; AnalogSyncControl register (ASY_CR)
 	db		e6h, 00h		; DecimatorControl_0 register (DEC_CR0)
 	db		e7h, 02h		; DecimatorControl_1 register (DEC_CR1)

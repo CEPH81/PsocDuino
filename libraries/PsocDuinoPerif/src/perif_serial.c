@@ -1,9 +1,6 @@
 /* perif_serial.c - Serial sobre el User Module UART (TX/RX por bloques DCB). */
 #include "PsocDuinoPerif.h"
 #include "psocduino_perif.h"
-#if PSD_HW
-#include "perif_hw.h"
-#endif
 
 #if PSD_HAS_UART
 

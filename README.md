@@ -44,12 +44,11 @@ Proyecto de [MikrocontrollerCephs](https://www.youtube.com/@mikrocontrollersceph
 | Instalación por el Gestor de placas | ✅ (versión actual en `platform.txt`) |
 | Compilación con ImageCraft (`psocbuild`) | ✅ los 7 chips compilan con el ImageCraft real |
 | Pines, `millis`, `delay`, `shiftOut`, `pulseIn`, matemáticas… | ✅ |
-| `Serial`, `analogRead`, `analogWrite` (PWM), `dacWrite` | ✅ en **todas** las placas: placas “+ perifericos” con User Modules (ADC 12 bits); las demás configuran los bloques por registros (ADC 6 bits). Pendiente de prueba en el chip |
+| `Serial`, `analogRead`, `analogWrite` (PWM), `dacWrite` | ✅ placas “+ perifericos” (pendiente de prueba en el chip) |
 | I2C por hardware | ✅ módulo I2CHW en CY8C27443 / CY8C29466 + periféricos (sin biblioteca `Wire` todavía) |
 | I2C por software | ✅ ejemplos (cualquier pata) |
 | SPI | ✅ por software (`shiftOut`/`shiftIn`); 🔜 por hardware (SPIM) en 27443/29466 |
-| Subida de un programa al chip real | ✅ probado con CY8C24423A (XRES, 5 V/24 MHz y 3,3 V/12 MHz) |
-| UART, PWM y ADC por software (sin bloques) | ✅ ejemplos SoftSerial_Eco, PWM_Software, ADC_RC_Potenciometro |
+| Subida de un programa al chip real | 🔜 en pruebas |
 | `attachInterrupt`, más canales PWM, biblioteca `Wire`/`SPI` | 🔜 |
 
 Hoja de ruta: [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -153,8 +152,7 @@ Más detalles: [docs/conexion.md](docs/conexion.md).
 
 ### 5.1 Placas (Herramientas → Placa → PsocDuino)
 
-**Placas normales** (los periféricos se configuran por registros solo si el sketch los
-usa; ver sección 9):
+**Placas sin periféricos** (solo pines y tiempos; usan menos memoria):
 
 | Placa | Flash | RAM | Encapsulado | Puertos | Memoria |
 |---|---|---|---|---|---|
@@ -170,7 +168,7 @@ usa; ver sección 9):
 Microcontrolador** para cambiar entre los 7 chips de arriba sin cambiar de placa.
 
 **Placas con periféricos** (usan los User Modules de los proyectos Base2 de PSoC
-Designer: ADC de 12 bits, DAC8 e I2C por hardware):
+Designer; necesarias para la biblioteca **PsocDuinoPerif**):
 
 | Placa | UART (Serial) | PWM | ADC | DAC | I2C hardware |
 |---|---|---|---|---|---|
@@ -253,18 +251,18 @@ una pata de un puerto que el chip no tiene se ignora.
 | Patas | Por qué |
 |---|---|
 | **P1_0, P1_1** | son SDATA y SCLK del programador. Se pueden usar en el programa, pero lo que conecte ahí puede impedir grabar |
-| UART (P2_0/P2_1, o P1_2/P1_4 en 24223A, 27243 y 21234), PWM (P1_6; P0_6 en el 21234), DAC (P0_5), I2C (P1_5/P1_7 en 27443/29466 + periféricos) | en las placas “+ perifericos” siempre están conectadas al periférico; en las demás, solo después de `Serial.begin`, `analogWrite(PWM)` o `dacWrite`. Una pata conectada a su bus global no responde a `digitalWrite` |
-| P0_1, P0_3, P0_7 | entradas del ADC: `analogRead` las pone solo en `INPUT_ANALOG` |
+| **Placas “+ perifericos”**: P2_0/P2_1 (UART; en el 24223A P1_2/P1_4), P1_6 (PWM), P0_5 (DAC), P1_5/P1_7 (I2C en 27443/29466) | las usa un periférico. Si las toca con `pinMode`/`digitalWrite`, el periférico se desconecta de la pata |
+| P0_1, P0_3, P0_7 en las placas con periféricos | entradas del ADC: `analogRead` las pone solo en `INPUT_ANALOG` |
 
 ### 7.4 Funciones analógicas: solo en patas fijas
 
-En el PSoC 1 cada periférico llega solo a **ciertas patas** (buses globales y
-multiplexores de columna). No es como en Arduino, donde cualquier pata A0–A5 sirve.
+En el PSoC 1 cada periférico va **cableado a ciertas patas** dentro del proyecto de
+PSoC Designer. No es como en Arduino, donde cualquier pata A0–A5 sirve.
 
 | Función | Patas | Si se usa otra pata |
 |---|---|---|
 | `analogRead()` | **P0_1, P0_3, P0_7** (P0_5 también, pero es la salida del DAC) | devuelve **0**. El multiplexor de la columna analógica 0 solo llega a P0_1/P0_3/P0_5/P0_7 |
-| `analogWrite()` | **P1_6** (PWM por hardware, 31,25 kHz; **P0_6** en el CY8C21234) | se comporta como `digitalWrite`: HIGH si el valor es ≥ 128, LOW si es menor. Para PWM en cualquier pata: ejemplo **PWM_Software** |
+| `analogWrite()` | **P1_6** (PWM por hardware, 31,25 kHz) | se comporta como `digitalWrite`: HIGH si el valor es ≥ 128, LOW si es menor |
 | `dacWrite()` | **P0_5** | — |
 | `Serial` | ver tabla de la sección 5.1 | — |
 
@@ -321,31 +319,15 @@ chip) para escribir código distinto por chip:
 
 ## 9. Periféricos: Serial, analogRead, analogWrite, dacWrite, I2C
 
-En **todas las placas** (desde la v0.6.0). En el sketch:
+Solo en las placas **“+ perifericos”**. En el sketch:
 
 ```c
 #include <PsocDuinoPerif.h>
 ```
 
-Hay dos formas de obtenerlos; el sketch es el mismo:
-
-| | Placas “+ perifericos” | Placas normales (y “todos los modelos”) |
-|---|---|---|
-| Cómo | User Modules del proyecto Base2 de PSoC Designer, cargados al arrancar | La biblioteca **configura los bloques por registros** la primera vez que se usan (`perif_hw.h`, según el PSoC TRM) |
-| `analogRead` | ADCINC **12 bits** | **SAR de 6 bits** por software (64 niveles; pasos de 16 en 0..1023) |
-| `dacWrite` | DAC6 (24423A) o DAC8 | DAC6 (64 escalones) |
-| `analogWrite`, `Serial` | PWM8 y UART | PWM8 y UART (mismos bloques y patas) |
-| I2C por hardware | 27443 y 29466 | — (use el I2C por software) |
-| Memoria | la configuración entra siempre | solo entra lo que el sketch usa |
-
-En los **CY8C21234 y CY8C21534** (bloques analógicos limitados) no hay ADC ni DAC
-por registros: `analogRead` devuelve 0 y `dacWrite` no hace nada. `Serial` y
-`analogWrite` sí funcionan.
-
-Bloques usados por registros: PWM8 en DBB01 (VC2 = 8 MHz), UART en DCB02/DCB03
-(VC3), DAC del SAR en ASC10 → ABUS0 → comparador ACB00 contra la pata (columna 0),
-DAC6 de `dacWrite` en ASD11 → ABUS1 → buffer → P0_5. Referencias Vdd/2 ± Vdd/2
-(rango 0..Vdd). Todo por sondeo, sin interrupciones.
+Hay que elegir una placa **“+ perifericos”** o, en “PSoC 1 (todos los modelos)”, un
+**Microcontrolador “... + perifericos”**. Si no, el IDE muestra la variante en uso y:
+`PsocDuino: la placa elegida no tiene perifericos ...`.
 
 ### 9.1 Serial (UART 8N1)
 
@@ -378,9 +360,8 @@ int v = analogRead(P0_3);    /* 0..1023 (10 bits por defecto) */
 analogReadResolution(12);    /* 6 a 12 bits: 12 -> 0..4095 */
 ```
 
-- Placas “+ perifericos”: ADC incremental **ADCINC de 12 bits** con un **PGA de
-  ganancia 1**; placas normales: **SAR de 6 bits** (unos 100 µs por lectura). Rango de
-  **0 V a Vdd** (referencia Vdd/2 ± Vdd/2 desde la v0.6.0).
+- ADC incremental **ADCINC de 12 bits** con un **PGA de ganancia 1**: el rango es de
+  **0 V a Vdd**.
 - Entradas: P0_1, P0_3, P0_7 (y P0_5). Otras patas devuelven 0.
 - Si el ADC no responde, devuelve 0 después de un tiempo en lugar de colgarse.
 
@@ -399,9 +380,8 @@ salida digital (≥ 128 = HIGH).
 dacWrite(200);               /* 0..255 -> 0 V..Vdd en P0_5 */
 ```
 
-En el CY8C24423A + perifericos y en las placas normales el DAC es de 6 bits: el valor
-0..255 se convierte a 64 escalones. En las demás placas “+ perifericos” es de 8 bits
-(256 escalones).
+En el CY8C24423A el DAC es de 6 bits: el valor 0..255 se convierte a 64 escalones. En
+los demás es de 8 bits (256 escalones).
 
 ### 9.5 I2C por hardware (CY8C27443 y CY8C29466 + periféricos)
 
@@ -421,19 +401,9 @@ cualquier par de patas).
 
 ### 9.6 Memoria de la biblioteca
 
-La biblioteca se enlaza como `.a`: **solo ocupan flash las funciones que usa el
-sketch**. En las placas “+ perifericos” las rutinas de interrupción y la tabla de
-configuración entran siempre; en las normales no hay tabla ni interrupciones.
-
-### 9.7 Sin bloques: UART, PWM y ADC por software
-
-En cualquier placa y pata, solo con el núcleo (biblioteca PsocDuino):
-
-| Ejemplo | Qué hace | Límites |
-|---|---|---|
-| **SoftSerial_Eco** | UART por bit-bang 9600 8N1 (TX P1_4, RX P1_3) | la CPU queda ocupada durante cada byte; ajuste `AJUSTE_US` con osciloscopio si hace falta |
-| **PWM_Software** | brillo de un LED (~490 Hz) en P1_2 | ocupa la CPU; para LEDs, no motores ni audio |
-| **ADC_RC_Potenciometro** | mide un potenciómetro/LDR por el tiempo de carga de un condensador (P1_5) | aproximado: depende de Vdd, del condensador y de la temperatura |
+Las rutinas de los User Modules se enlazan desde una biblioteca: **solo ocupan flash
+las que usa el sketch**. Las rutinas de interrupción y la tabla de configuración entran
+siempre.
 
 ---
 
@@ -589,11 +559,8 @@ ImageCraft solo compila **C89**. `psocbuild` convierte el `.ino` en `.c`, pero:
 | LCD_HD44780 | pantalla 16×2 en modo 4 bits | D4–D7 P2_0–P2_3, E P2_4, RS P2_5, R/W P2_6 |
 | I2C_EEPROM_24C256 | cuenta arranques en una EEPROM 24C256 (0x50), I2C por software | SDA P1_5, SCL P1_7, LED P1_6 |
 | I2C_Teclado_MPR121 | teclado táctil de 9 teclas MPR121 (0x5A), I2C por software | SDA P1_5, SCL P1_7, LED P1_6 |
-| SoftSerial_Eco | UART por software 9600 (bit-bang), eco | TX P1_4, RX P1_3 |
-| PWM_Software | LED con brillo variable por software | P1_2 |
-| ADC_RC_Potenciometro | potenciómetro leído por tiempo de carga RC; el LED parpadea según el valor | RC en P1_5, LED P1_2 |
 
-**Archivo → Ejemplos → PsocDuinoPerif** (todas las placas):
+**Archivo → Ejemplos → PsocDuinoPerif** (solo placas “+ perifericos”):
 
 | Ejemplo | Qué hace | Patas |
 |---|---|---|
@@ -724,8 +691,7 @@ WCH; en Linux/macOS, libusb.
 
 | Mensaje / síntoma | Causa y solución |
 |---|---|
-| `psocduino_perif.h: No such file or directory` | desde la v0.6.0 todas las variantes incluidas lo traen. En una variante importada, copie el `psocduino_perif.h` de la variante incluida del mismo chip |
-| `analogRead` da valores en saltos de 16 | placa normal: SAR de 6 bits. Para 12 bits use la placa “+ perifericos” |
+| `psocduino_perif.h: No such file or directory` / `la placa elegida no tiene perifericos` | usó `PsocDuinoPerif` con una placa sin periféricos (la línea `variante en uso:` dice cuál). Elija una placa **“+ perifericos”**, o en “PSoC 1 (todos los modelos)” el Microcontrolador **“... + perifericos”** (sección 5.1) |
 | `la variante 'xxx' no esta importada` | chip sin variante: importe una (sección 17) |
 | `no encuentro PSoC Designer` | defina `PSOC_DESIGNER_DIR` (sección 3.3) y reinicie el IDE |
 | `cannot load source file "Designer\5.4\...\icppw.exe"` | Windows sin nombres cortos: `psocbuild` crea `%LOCALAPPDATA%\PsocDuino\psd`. Si no puede: `mklink /J %LOCALAPPDATA%\PsocDuino\psd "C:\Program Files (x86)\Cypress\PSoC Designer\5.4\Common\CypressSemiBuildMgr"` |

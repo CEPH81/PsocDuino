@@ -1,9 +1,6 @@
 /* perif_pwm.c - analogWrite con el User Module PWM8 (una salida PWM por placa). */
 #include "PsocDuinoPerif.h"
 #include "psocduino_perif.h"
-#if PSD_HW
-#include "perif_hw.h"
-#endif
 
 #if PSD_HAS_PWM
 

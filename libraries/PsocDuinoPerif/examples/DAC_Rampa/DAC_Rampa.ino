@@ -1,6 +1,5 @@
 /* DAC_Rampa - rampa de 0 V a Vdd en P0_5 con el DAC (vease con el osciloscopio).
- * Placas "+ perifericos": DAC6 (24423A, 64 escalones) o DAC8 (256 escalones).
- * Demas placas: DAC6 por registros (64 escalones). CY8C21x34: sin DAC.
+ * CY8C24423A: DAC6 (64 escalones); CY8C24223A: DAC8 (256 escalones).
  * Ponga un potenciometro en P0_3 para cambiar la velocidad de la rampa. */
 #include <PsocDuinoPerif.h>
 
